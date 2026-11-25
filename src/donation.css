@@ -1,0 +1,14 @@
+.support-button{display:flex;align-items:center;gap:7px;padding:8px 11px;background:#c6b17b;color:#1c201a;border:1px solid #c6b17b;font:600 10px 'DM Sans',sans-serif}
+.modal-backdrop{position:absolute;z-index:8;inset:0;display:grid;place-items:center;padding:18px;background:#0c100dcc;backdrop-filter:blur(7px)}
+.donation-dialog{position:relative;width:min(440px,100%);max-height:calc(100vh - 36px);overflow:auto;padding:28px 34px 24px;text-align:center;background:#1a1e19;border:1px solid #d3c29266;box-shadow:0 24px 90px #000a}
+.modal-close{position:absolute;right:14px;top:10px;background:none;border:0;color:#c5c2b5;font-size:25px}
+.donation-dialog h2{font:600 30px/1.05 'Playfair Display',serif;margin:14px 0}
+.donation-dialog h2 em{color:#cfbb88}
+.donation-dialog>p{font-size:12px;line-height:1.6;color:#c5c2b5;margin:0 auto 16px;max-width:340px}
+.donation-dialog>p strong{color:#ece9dc}
+.pix-qr{display:block;width:190px;height:190px;object-fit:contain;margin:0 auto 13px;background:#fff;border:6px solid #fff}
+.pix-label{font:9px 'DM Mono',monospace;letter-spacing:.15em;color:#aaa998}
+.pix-key{font:18px 'DM Mono',monospace;letter-spacing:.035em;margin:7px 0 12px;color:#ece9dc}
+.copy-key{width:100%;display:flex;justify-content:space-between;padding:12px 14px}
+.pix-help{display:block;margin-top:11px;color:#98998d;font:9px 'DM Mono',monospace}
+@media(max-width:650px){.support-button{padding:8px}.support-button span{display:none}.donation-dialog{padding:25px 22px 20px}.pix-qr{width:170px;height:170px}.pix-key{font-size:16px}}

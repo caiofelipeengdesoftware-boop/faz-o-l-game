@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.codex-npm-cache/
+.env
+.env.*
+!.env.example
+*.log
+browser-game-check.*
