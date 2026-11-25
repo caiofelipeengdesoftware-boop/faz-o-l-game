@@ -16,6 +16,16 @@ export const gameInput = {
   throttle: 0, reverse: 0, cameraPressed: false, pausePressed: false, interactionClaimed: false,
 };
 
+/** Touch controls feed the same action map used by keyboard and gamepads. */
+export const touchInput = {
+  moveX: 0, moveY: 0, lookDx: 0, lookDy: 0,
+  fire: false, aim: false, run: false, jump: false, interact: false, reload: false,
+};
+
+export function resetTouchInput() {
+  Object.assign(touchInput, { moveX: 0, moveY: 0, lookDx: 0, lookDy: 0, fire: false, aim: false, run: false, jump: false, interact: false, reload: false });
+}
+
 function clearInput() {
   Object.assign(gameInput, {
     enabled: false, moveX: 0, moveY: 0, lookX: 0, lookY: 0, run: false, jumpPressed: false,
@@ -93,9 +103,9 @@ export function InputManager({ enabled }: { enabled: boolean }) {
     smooth.current.y = MathUtils.damp(smooth.current.y, rawY, 18, Math.min(delta, 0.05));
     mouse.current.dx = 0; mouse.current.dy = 0;
 
-    const jump = pressed.has(' ') || (!driving && button(2));
-    const interact = pressed.has('e') || button(3);
-    const vehicle = pressed.has('f') || button(3);
+    const jump = pressed.has(' ') || (!driving && button(2)) || touchInput.jump;
+    const interact = pressed.has('e') || button(3) || touchInput.interact;
+    const vehicle = pressed.has('f') || button(3) || touchInput.interact;
     const map = pressed.has('m') || pressed.has('z') || (!driving && button(8));
     const quest = pressed.has('j') || button(12);
     const camera = pressed.has('v') || (driving && button(8));
@@ -105,13 +115,16 @@ export function InputManager({ enabled }: { enabled: boolean }) {
     const radio = driving && (pressed.has('q') || button(14));
     const phase = useGameStore.getState().missionPhase;
     const melee = pressed.has('q') && !driving && phase === 'shootout';
-    const reload = pressed.has('r') || (!driving && button(1));
+    const reload = pressed.has('r') || (!driving && button(1)) || touchInput.reload;
 
-    gameInput.moveX = MathUtils.clamp(Number(pressed.has('d')) - Number(pressed.has('a')) + rawAxis(axes[0]), -1, 1);
-    gameInput.moveY = MathUtils.clamp(Number(pressed.has('w')) - Number(pressed.has('s')) - rawAxis(axes[1]), -1, 1);
-    gameInput.lookX = smooth.current.x;
-    gameInput.lookY = smooth.current.y;
-    gameInput.run = pressed.has('shift') || button(0);
+    gameInput.moveX = MathUtils.clamp(Number(pressed.has('d')) - Number(pressed.has('a')) + rawAxis(axes[0]) + touchInput.moveX, -1, 1);
+    gameInput.moveY = MathUtils.clamp(Number(pressed.has('w')) - Number(pressed.has('s')) - rawAxis(axes[1]) + touchInput.moveY, -1, 1);
+    const touchLookX = delta > 0 ? touchInput.lookDx / delta * 0.002 * config.mouseSensitivity : 0;
+    const touchLookY = delta > 0 ? touchInput.lookDy / delta * 0.002 * config.mouseSensitivity : 0;
+    gameInput.lookX = smooth.current.x + touchLookX;
+    gameInput.lookY = smooth.current.y + touchLookY;
+    touchInput.lookDx = 0; touchInput.lookDy = 0;
+    gameInput.run = pressed.has('shift') || button(0) || touchInput.run;
     gameInput.jumpPressed = jump && !was.current.jump;
     gameInput.interactPressed = interact && !was.current.interact;
     gameInput.missionPressed = gameInput.interactPressed;
@@ -133,8 +146,8 @@ export function InputManager({ enabled }: { enabled: boolean }) {
     if (gameInput.crouchPressed) useGameStore.getState().toggleCrouch();
     if (gameInput.headlightsPressed) useGameStore.getState().toggleHeadlights();
     if (gameInput.radioPressed) useGameStore.getState().cycleRadio();
-    gameInput.fire = mouse.current.fire || trigger(7) > 0.16;
-    gameInput.aim = mouse.current.aim || trigger(6) > 0.16;
+    gameInput.fire = mouse.current.fire || trigger(7) > 0.16 || touchInput.fire;
+    gameInput.aim = mouse.current.aim || trigger(6) > 0.16 || touchInput.aim;
     gameInput.brake = pressed.has('s') || (driving && trigger(6) > 0.16);
     gameInput.handbrake = pressed.has(' ') || (driving && (button(5) || button(0)));
     gameInput.cover = !driving && (button(5) || (pressed.has('q') && phase !== 'shootout'));
