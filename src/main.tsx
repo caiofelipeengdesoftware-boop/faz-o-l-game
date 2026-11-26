@@ -5,6 +5,7 @@ import './style.css';
 import './donation.css';
 import './gameplay.css';
 import './menu.css';
+import './menu2.css';
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode><App /></React.StrictMode>,

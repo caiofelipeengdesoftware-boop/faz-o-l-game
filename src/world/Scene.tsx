@@ -16,6 +16,8 @@ import { ClubExterior, ClubInterior, ClubSoundscape } from './Club';
 import { Animals } from './Animals';
 import { RemotePlayers } from '../multiplayer/Multiplayer';
 import { Effects } from './Effects';
+import { StoryNpcs } from './Npcs';
+import { ChaseTarget } from './Chase';
 
 export function Scene({ onInteract, enabled }: { onInteract: () => void; enabled: boolean }) {
   const isInside = useGameStore((state) => state.isInside);
@@ -32,7 +34,7 @@ export function Scene({ onInteract, enabled }: { onInteract: () => void; enabled
         <Vehicle /><Traffic />
         <ParkedCar position={[-69, 0.72, -8]} color="#667e84" />
         <ParkedCar position={[69, 0.72, 10]} color="#a84d39" />
-        <Pedestrians /><Animals /><MissionOfficer /><EvidenceSite /><QuestObjectives /><RemotePlayers />
+        <Pedestrians /><StoryNpcs onBribe={onInteract} /><ChaseTarget /><Animals /><MissionOfficer /><EvidenceSite /><QuestObjectives /><RemotePlayers />
         {[0, 1, 2, 3].map((index) => <FactionEnemy key={index} index={index} />)}
       </>}
       <Player />

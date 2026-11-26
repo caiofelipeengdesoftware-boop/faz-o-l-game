@@ -19,12 +19,19 @@ export interface WorldSlice {
   timeOfDay: 'day' | 'night';
   weather: 'clear' | 'rain';
   inputDevice: 'gamepad' | 'keyboardMouse';
+  interactHint: string | null;
+  notice: { id: number; text: string } | null;
+  chasePosition: [number, number] | null;
   isInside: boolean;
   interiorKind: 'home' | 'club';
   showQuestBoard: boolean;
   isCrouched: boolean;
   headlightsOn: boolean;
   radioStation: number;
+  setInteractHint: (hint: string | null) => void;
+  showNotice: (text: string) => void;
+  clearNotice: (id: number) => void;
+  setChasePosition: (position: [number, number] | null) => void;
   setPlayerPosition: (x: number, z: number) => void;
   setPlayerYaw: (yaw: number) => void;
   restorePlayerAt: (x: number, z: number) => void;
@@ -72,12 +79,19 @@ export const createWorldSlice: StateCreator<WorldSlice> = (set, get) => ({
   timeOfDay: 'day',
   weather: 'clear',
   inputDevice: 'keyboardMouse',
+  interactHint: null,
+  notice: null,
+  chasePosition: null,
   isInside: false,
   interiorKind: 'home',
   showQuestBoard: false,
   isCrouched: false,
   headlightsOn: false,
   radioStation: 0,
+  setInteractHint: (interactHint) => set({ interactHint }),
+  showNotice: (text) => set({ notice: { id: Date.now(), text } }),
+  clearNotice: (id) => set((state) => state.notice?.id === id ? { notice: null } : {}),
+  setChasePosition: (chasePosition) => set({ chasePosition }),
   setPlayerPosition: (x, z) => set({ playerPosition: [x, z] }),
   setPlayerYaw: (playerYaw) => set({ playerYaw }),
   restorePlayerAt: (x, z) => set((state) => ({ playerPosition: [x, z], playerTeleport: state.playerTeleport + 1 })),

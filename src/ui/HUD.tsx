@@ -34,10 +34,11 @@ function QuestBoard({ onAccept }: { onAccept: (id: QuestId) => void }) {
       <div className="quest-list">{QUESTS.map((quest) => {
         const progress = quests.find((item) => item.id === quest.id) ?? { id: quest.id, status: 'available' as const, progress: 0 };
         const completed = progress.status === 'complete'; const active = progress.status === 'active';
+        const locked = Boolean(quest.requires && quests.find((item) => item.id === quest.requires)?.status !== 'complete');
         const objective = active ? quest.steps[Math.min(progress.progress, quest.steps.length - 1)] : quest.description;
         return <article key={quest.id} className={`quest-row ${active ? 'is-active' : ''}`}>
           <div className="quest-row-copy"><div className="quest-row-meta"><strong>{quest.title}</strong><span>{completed ? 'CONCLUÍDO' : active ? 'EM ANDAMENTO' : 'DISPONÍVEL'}</span></div><p>{objective}</p><small>Recompensa · R$ {quest.reward.toLocaleString('pt-BR')} · reputação +{quest.reputation}</small></div>
-          {active ? <button className="quest-action" onClick={() => useGameStore.getState().trackQuest(quest.id)}>{tracked === quest.id ? 'RASTREANDO' : 'RASTREAR'}</button> : completed ? <span className="quest-check">✓</span> : <button className="quest-action quest-accept" onClick={() => onAccept(quest.id)}>ACEITAR</button>}
+          {active ? <button className="quest-action" onClick={() => useGameStore.getState().trackQuest(quest.id)}>{tracked === quest.id ? 'RASTREANDO' : 'RASTREAR'}</button> : completed ? <span className="quest-check">✓</span> : locked ? <span className="quest-lock">BLOQUEADA</span> : <button className="quest-action quest-accept" onClick={() => onAccept(quest.id)}>ACEITAR</button>}
         </article>;
       })}</div>
       <footer>Direcional ou LS para navegar · A / × para confirmar · Esc fecha</footer>
@@ -45,8 +46,19 @@ function QuestBoard({ onAccept }: { onAccept: (id: QuestId) => void }) {
   </div>;
 }
 
+function NoticeToast() {
+  const notice = useGameStore((state) => state.notice);
+  useEffect(() => {
+    if (!notice) return;
+    const id = notice.id; const timer = window.setTimeout(() => useGameStore.getState().clearNotice(id), 4600);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+  return notice ? <div className="notice-toast" role="status"><span>●</span>{notice.text}</div> : null;
+}
+
 export function HUD({ onDonate, onMissionStart, onPause, onToggleCamera, onAcceptQuest }: { onDonate: () => void; onMissionStart: () => void; onPause: () => void; onToggleCamera: () => void; onAcceptQuest: (id: QuestId) => void }) {
   const alert = useGameStore((state) => state.alertLevel);
+  const interactHint = useGameStore((state) => state.interactHint);
   const health = useGameStore((state) => state.playerHealth);
   const armor = useGameStore((state) => state.playerArmor);
   const ammo = useGameStore((state) => state.playerAmmo);
@@ -71,12 +83,12 @@ export function HUD({ onDonate, onMissionStart, onPause, onToggleCamera, onAccep
   const evidenceDistance = Math.hypot(player[0] - 45, player[1] + 43);
   const houseDistance = Math.hypot(player[0] + 45, player[1] + 37);
   const clubDistance = Math.hypot(player[0] + 15, player[1] - 8);
-  const prompt = isInside ? `Sair d${interiorKind === 'club' ? 'a boate' : 'o apartamento'}` : driving ? 'Sair do veículo' : carDistance < 4.5 ? 'Entrar no veículo' : houseDistance < 2.8 ? 'Entrar no apartamento' : clubDistance < 3.1 ? 'Entrar na boate' : missionPhase === 'evidence' && evidenceDistance < 3.5 ? 'Recolher as provas' : (missionPhase === 'available' || missionPhase === 'complete') && officerDistance < 3.2 ? 'Falar com a inspetora' : null;
+  const prompt = isInside ? `Sair d${interiorKind === 'club' ? 'a boate' : 'o apartamento'}` : driving ? 'Sair do veículo' : carDistance < 4.5 ? 'Entrar no veículo' : houseDistance < 2.8 ? 'Entrar no apartamento' : clubDistance < 3.1 ? 'Entrar na boate' : missionPhase === 'evidence' && evidenceDistance < 3.5 ? 'Recolher as provas' : (missionPhase === 'available' || missionPhase === 'complete') && officerDistance < 3.2 ? 'Falar com a inspetora' : interactHint;
   const controllerLabel = getControllerLabel(controllerName, getControllerSettings().profile);
   const buttonName = inputDevice === 'gamepad' ? controllerLabel === 'PlayStation' ? '△' : 'Y' : 'E';
 
   return <>
-    <aside className="wanted-status" aria-label="Nível de alerta"><span>{alert ? 'PROCURADO' : 'CIDADE EM PAZ'}</span><strong>{Array.from({ length: 5 }, (_, i) => <i key={i} className={i < alert ? 'star-on' : ''}>★</i>)}</strong><b className="ammo-readout">▣ {ammo}{missionPhase === 'shootout' && <small>· {enemies} ALVOS</small>}</b></aside>
+    <aside className={`wanted-status ${alert ? '' : 'is-calm'}`} aria-label="Nível de alerta"><span>{alert ? 'PROCURADO' : 'CIDADE EM PAZ'}</span><strong>{Array.from({ length: 5 }, (_, i) => <i key={i} className={i < alert ? 'star-on' : ''}>★</i>)}</strong><b className="ammo-readout">▣ {ammo}{missionPhase === 'shootout' && <small>· {enemies} ALVOS</small>}</b></aside>
     <nav className="gta-actions" aria-label="Ações do jogo">
       <button className="hud-icon" title="Trabalhos (J / direcional para cima)" aria-label="Abrir trabalhos" onClick={() => useGameStore.getState().toggleQuestBoard()}>☷</button>
       <button className={`hud-icon ${map ? 'is-selected' : ''}`} title="Mapa (M / View)" aria-label="Ampliar mapa" onClick={() => useGameStore.getState().toggleMap()}>▦</button>
@@ -86,11 +98,12 @@ export function HUD({ onDonate, onMissionStart, onPause, onToggleCamera, onAccep
     </nav>
     {controllerConnected && <div className="input-device-chip">{inputDevice === 'gamepad' ? 'CONTROLE' : 'TECLADO · MOUSE'}</div>}
     <MiniMap />
-    <section className="player-vitals" aria-label="Vitalidade e colete">
+    <NoticeToast />
+    <section className={`player-vitals ${health >= 100 && armor >= 100 ? 'is-full' : ''}`} aria-label="Vitalidade e colete">
       <div><span>VIDA</span><b>{health}</b><i className="vital-track"><i className="vital-health" style={{ width: `${health}%` }} /></i></div>
       <div><span>COLETE</span><b>{armor}</b><i className="vital-track"><i className="vital-armor" style={{ width: `${armor}%` }} /></i></div>
     </section>
-    <section className="quest-tracker-stack" aria-label="Missões ativas">{quests.filter((quest) => quest.status === 'active').map((active) => {
+    <section className="quest-tracker-stack" aria-label="Missões ativas">{quests.filter((quest) => quest.status === 'active').filter((quest, position, list) => trackedQuestId ? quest.id === trackedQuestId : position === list.length - 1).map((active) => {
       const details = QUESTS.find((quest) => quest.id === active.id);
       if (!details) return null;
       const line = active.id === 'contracts' && missionPhase !== 'available' ? missionText : details.steps[Math.min(active.progress, details.steps.length - 1)];

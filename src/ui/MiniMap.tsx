@@ -14,9 +14,11 @@ export function MiniMap() {
   const large = useGameStore((state) => state.showMap);
   const tracked = useGameStore((state) => state.trackedQuestId);
   const quests = useGameStore((state) => state.quests);
+  const chasePosition = useGameStore((state) => state.chasePosition);
   const patrol = quests.find((quest) => quest.id === 'patrol');
   const patrolPoints: [number, number, number][] = [[-45, 0, -15], [0, 0, -45], [45, 0, 15]];
-  const target = tracked === 'witness' ? [-8, 0, -25] as [number, number, number]
+  const target = tracked === 'witness' ? [-5.4, 0, -27] as [number, number, number]
+    : tracked === 'chase' ? (chasePosition ? [chasePosition[0], 0, chasePosition[1]] : [35.4, 0, -33]) as [number, number, number]
     : tracked === 'patrol' ? patrolPoints[Math.min(patrol?.progress ?? 0, patrolPoints.length - 1)]
       : phase === 'evidence' || phase === 'shootout' ? EVIDENCE_POSITION : [-11, 0, 10] as [number, number, number];
   const hasTarget = tracked ? Boolean(quests.find((quest) => quest.id === tracked && quest.status === 'active')) : phase !== 'complete';

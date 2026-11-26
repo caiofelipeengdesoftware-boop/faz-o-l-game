@@ -5,19 +5,8 @@ import { consumeInteraction, gameInput } from '../systems/gameInput';
 import { registerCombatTarget, unregisterCombatTarget } from '../systems/combatTargets';
 import { useGameStore } from '../state';
 import { playGunshot, playImpact } from '../systems/audio';
-
-function UniformedFigure({ color = '#315f83' }: { color?: string }) {
-  return <group>
-    <mesh castShadow position={[0, 0.83, 0]}><capsuleGeometry args={[0.28, 0.65, 4, 9]} /><meshStandardMaterial color={color} /></mesh>
-    <mesh castShadow position={[0, 1.52, 0]}><sphereGeometry args={[0.21, 14, 12]} /><meshStandardMaterial color="#bd896c" /></mesh>
-    <mesh castShadow position={[0, 1.68, 0]}><cylinderGeometry args={[0.25, 0.25, 0.08, 14]} /><meshStandardMaterial color="#244867" /></mesh>
-    <mesh castShadow position={[-0.37, 0.58, 0]} rotation-z={-0.12}><capsuleGeometry args={[0.12, 0.55, 3, 7]} /><meshStandardMaterial color="#1e2830" /></mesh>
-    <mesh castShadow position={[0.37, 0.58, 0]} rotation-z={0.12}><capsuleGeometry args={[0.12, 0.55, 3, 7]} /><meshStandardMaterial color="#1e2830" /></mesh>
-    <mesh castShadow position={[-0.15, 0.2, 0]}><capsuleGeometry args={[0.13, 0.5, 3, 7]} /><meshStandardMaterial color="#1d2d3a" /></mesh>
-    <mesh castShadow position={[0.15, 0.2, 0]}><capsuleGeometry args={[0.13, 0.5, 3, 7]} /><meshStandardMaterial color="#1d2d3a" /></mesh>
-    <mesh position={[0, 0.96, 0.27]}><boxGeometry args={[0.12, 0.16, 0.025]} /><meshStandardMaterial color="#e0c06d" metalness={0.55} /></mesh>
-  </group>;
-}
+import { ENEMY_LOOKS, lookOf } from '../data/story';
+import { newMotion, Person } from './Person';
 
 export function MissionOfficer() {
   const phase = useGameStore((state) => state.missionPhase);
@@ -37,8 +26,14 @@ export function MissionOfficer() {
       store.resetMission(); store.showCharacterDialogue('Inspetora Helena', 'Bom trabalho, investigador. O dossiê está seguro. Quando estiver pronto, temos outra denúncia para apurar.');
     }
   });
+  const body = useRef<Group>(null);
+  useFrame(() => {
+    if (!body.current || !gameInput.enabled) return;
+    const [px, pz] = useGameStore.getState().playerPosition; const dx = px + 11; const dz = pz - 10;
+    if (Math.hypot(dx, dz) < 8) { let diff = Math.atan2(dx, dz) - body.current.rotation.y; diff = Math.atan2(Math.sin(diff), Math.cos(diff)); body.current.rotation.y += diff * 0.12; }
+  });
   return <group position={[-11, 0, 10]}>
-    <UniformedFigure />
+    <group ref={body}><Person look={lookOf('helena')} /></group>
     <group ref={label} position-y={2.28}>
       <mesh><sphereGeometry args={[0.12, 12, 12]} /><meshBasicMaterial color="#e6c66e" /></mesh>
     </group>
@@ -102,6 +97,7 @@ export function FactionEnemy({ index }: { index: number }) {
   const attack = useRef(1.0 + index * 0.4);
   const tracerTime = useRef(0);
   const direction = useRef(new Vector3());
+  const motion = useRef(newMotion());
   const quaternion = useRef(new Quaternion());
   useEffect(() => { if (phase === 'shootout') { hp.current = 3; setAlive(true); } }, [phase]);
   useEffect(() => {
@@ -121,9 +117,13 @@ export function FactionEnemy({ index }: { index: number }) {
     const [px, pz] = useGameStore.getState().playerPosition;
     direction.current.set(px - group.position.x, 0, pz - group.position.z);
     const distance = direction.current.length();
-    if (distance > 6) {
-      direction.current.normalize();
-      group.position.addScaledVector(direction.current, Math.min(delta, 0.05) * 1.25);
+    const nx = direction.current.x / (distance || 1); const nz = direction.current.z / (distance || 1);
+    const step = Math.min(delta, 0.05);
+    if (distance > 8) { group.position.x += nx * step * 2.9; group.position.z += nz * step * 2.9; motion.current.speed = 1.6; }
+    else if (distance < 4.5) { group.position.x -= nx * step * 1.6; group.position.z -= nz * step * 1.6; motion.current.speed = 1; }
+    else {
+      const side = Math.sin(performance.now() * 0.0011 + index * 2.3) > 0 ? 1 : -1;
+      group.position.x += -nz * side * step * 1.7; group.position.z += nx * side * step * 1.7; motion.current.speed = 1.1;
     }
     group.rotation.y = Math.atan2(direction.current.x, direction.current.z);
     attack.current -= delta;
@@ -148,14 +148,7 @@ export function FactionEnemy({ index }: { index: number }) {
   if (phase !== 'shootout' || !alive) return null;
   const [x, y, z] = ENEMY_SPAWNS[index];
   return <group ref={root} position={[x, y, z]}>
-    <mesh castShadow position-y={0.85}><capsuleGeometry args={[0.29, 0.68, 4, 8]} /><meshStandardMaterial color="#37383a" /></mesh>
-    <mesh castShadow position-y={1.56}><sphereGeometry args={[0.2, 14, 12]} /><meshStandardMaterial color="#ad795d" /></mesh>
-    <mesh castShadow position={[0, 1.65, 0.03]}><boxGeometry args={[0.33, 0.12, 0.25]} /><meshStandardMaterial color="#8a332a" /></mesh>
-    <mesh castShadow position={[-0.37, 0.61, 0]} rotation-z={-0.14}><capsuleGeometry args={[0.12, 0.56, 3, 7]} /><meshStandardMaterial color="#202226" /></mesh>
-    <mesh castShadow position={[0.37, 0.61, 0]} rotation-z={0.14}><capsuleGeometry args={[0.12, 0.56, 3, 7]} /><meshStandardMaterial color="#202226" /></mesh>
-    <mesh castShadow position={[-0.15, 0.18, 0]}><capsuleGeometry args={[0.13, 0.5, 3, 7]} /><meshStandardMaterial color="#222326" /></mesh>
-    <mesh castShadow position={[0.15, 0.18, 0]}><capsuleGeometry args={[0.13, 0.5, 3, 7]} /><meshStandardMaterial color="#222326" /></mesh>
-    <mesh castShadow position={[0.34, 0.98, 0.3]} rotation-x={-0.2}><boxGeometry args={[0.1, 0.1, 0.58]} /><meshStandardMaterial color="#151616" /></mesh>
+    <Person look={ENEMY_LOOKS[index % ENEMY_LOOKS.length]} motion={motion} />
     <mesh ref={tracer} visible={false}><cylinderGeometry args={[0.035, 0.035, 1, 5]} /><meshBasicMaterial color="#ff6f42" /></mesh>
   </group>;
 }

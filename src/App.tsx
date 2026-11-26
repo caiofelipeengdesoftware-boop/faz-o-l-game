@@ -13,6 +13,7 @@ import { useGameStore } from './state';
 import type { BribeOffer } from './systems/bribery';
 import type { QuestId } from './state/slices/questSlice';
 import { AimReticle } from './ui/AimReticle';
+import { clearHints } from './systems/hints';
 import { getControllerSettings, type ControllerSettings } from './systems/controllerSettings';
 const GameScene = lazy(() => import('./world/Scene').then((module) => ({ default: module.Scene })));
 const MultiplayerOverlay = lazy(() => import('./multiplayer/Multiplayer').then((module) => ({ default: module.MultiplayerOverlay })));
@@ -120,6 +121,7 @@ function exitGameplayView() {
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('title');
+  const [gameStarted, setGameStarted] = useState(false);
   const [storyIndex, setStoryIndex] = useState(0);
   const [dialogue, setDialogue] = useState(false);
   const [donating, setDonating] = useState(false);
@@ -136,6 +138,7 @@ export default function App() {
   const characterDialogue = useGameStore((state) => state.characterDialogue);
   const pauseRequested = useGameStore((state) => state.pauseRequested);
   const inGame = screen === 'game';
+  const sceneLive = gameStarted && (screen === 'game' || screen === 'pause' || (screen === 'settings' && settingsReturn.current === 'pause'));
 
   useEffect(() => {
     const found = loadGame(); setHasSave(found);
@@ -161,16 +164,16 @@ export default function App() {
 
   const resetGame = () => {
     unlockAudio(); setAudioEnabled(useGameStore.getState().audioEnabled);
-    const store = useGameStore.getState(); store.resetMission(); store.resetQuests(); store.resetCorruption(); store.restorePlayer(); store.reloadAmmo(); store.setDriving(false); store.restorePlayerAt(0, -8);
+    const store = useGameStore.getState(); store.resetMission(); store.resetQuests(); store.resetCorruption(); store.restorePlayer(); store.reloadAmmo(); store.setDriving(false); store.restorePlayerAt(0, -8); clearHints(); store.setChasePosition(null);
   };
-  const startNewGame = () => { if (physicsStatus !== 'ready') return; resetGame(); setScreen('game'); enterGameplayView(); };
+  const startNewGame = () => { if (physicsStatus !== 'ready') return; resetGame(); setGameStarted(true); setScreen('game'); enterGameplayView(); };
   const startStory = () => { if (physicsStatus !== 'ready') return; resetGame(); setStoryIndex(0); setScreen('intro'); };
   const continueGame = () => {
     if (physicsStatus !== 'ready') return;
     unlockAudio();
-    if (loadGame()) { setHasSave(true); setAudioEnabled(useGameStore.getState().audioEnabled); setScreen('game'); enterGameplayView(); }
+    if (loadGame()) { setHasSave(true); setAudioEnabled(useGameStore.getState().audioEnabled); setGameStarted(true); setScreen('game'); enterGameplayView(); }
   };
-  const finishStory = () => { if (physicsStatus !== 'ready') return; setScreen('game'); enterGameplayView(); };
+  const finishStory = () => { if (physicsStatus !== 'ready') return; setGameStarted(true); setScreen('game'); enterGameplayView(); };
   const retryPhysics = () => {
     setPhysicsStatus('loading');
     void preparePhysicsRuntime().then(() => setPhysicsStatus('ready')).catch((error: unknown) => {
@@ -192,21 +195,21 @@ export default function App() {
   };
   const toggleAudio = () => { const next = !useGameStore.getState().audioEnabled; useGameStore.setState({ audioEnabled: next }); setAudioEnabled(next); if (next) unlockAudio(); };
   const openSettings = () => { settingsReturn.current = screen === 'pause' ? 'pause' : 'title'; setScreen('settings'); };
-  const closeSettings = () => setScreen(settingsReturn.current);
+  const goBack = () => setScreen(screen === 'settings' ? settingsReturn.current : 'title');
   const resume = () => { setScreen('game'); enterGameplayView(); };
-  const returnToTitle = () => { save(); setScreen('title'); exitGameplayView(); };
+  const returnToTitle = () => { save(); setGameStarted(false); setScreen('title'); exitGameplayView(); };
   const closeCharacterDialogue = () => { useGameStore.getState().closeCharacterDialogue(); if (inGame && !dialogue && !donating && navigator.maxTouchPoints === 0) document.body.requestPointerLock?.(); };
 
   return <main className="game-shell">
     <Canvas shadows camera={{ position: [0, 5, 12], fov: 58, near: 0.1, far: 520 }} dpr={[1, 1.2]} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ gl }) => { gl.shadowMap.enabled = true; gl.shadowMap.type = PCFSoftShadowMap; }}>
-      {inGame ? <Suspense fallback={<LoadingBackdrop />}><GameScene enabled={!dialogue && !donating && !characterDialogue && !showQuestBoard} onInteract={() => { setDialogue(true); document.exitPointerLock?.(); }} /></Suspense> : <TitleBackdrop />}
+      {sceneLive ? <Suspense fallback={<LoadingBackdrop />}><GameScene enabled={inGame && !dialogue && !donating && !characterDialogue && !showQuestBoard} onInteract={() => { setDialogue(true); document.exitPointerLock?.(); }} /></Suspense> : <TitleBackdrop />}
       <GraphicsQuality />
     </Canvas>
     {inGame && <HUD onDonate={() => { setDonating(true); document.exitPointerLock?.(); }} onMissionStart={() => acceptQuest('contracts')} onAcceptQuest={acceptQuest}
       onPause={() => { setScreen('pause'); document.exitPointerLock?.(); }} onToggleCamera={() => useGameStore.getState().toggleCamera()} />}
     {inGame && !dialogue && !donating && !characterDialogue && !showQuestBoard && <MobileControls />}
     {screen !== 'game' && <MainMenu page={screen} storyIndex={storyIndex} hasSave={hasSave} soundEnabled={audioEnabled} cameraMode={cameraMode} controllerName={controllerName} timeOfDay={timeOfDay} weather={weather}
-      physicsStatus={physicsStatus} onRetryPhysics={retryPhysics} onNewGame={startNewGame} onStoryStart={startStory} onContinue={continueGame} onCredits={() => setScreen('credits')} onSettings={openSettings} onOnline={() => setScreen('online')} onBack={closeSettings}
+      physicsStatus={physicsStatus} onRetryPhysics={retryPhysics} onNewGame={startNewGame} onStoryStart={startStory} onContinue={continueGame} onCredits={() => setScreen('credits')} onSettings={openSettings} onOnline={() => setScreen('online')} onBack={goBack} onCast={() => setScreen('cast')}
       onStoryNext={storyNext} onStorySkip={finishStory} onToggleSound={toggleAudio} onToggleCamera={() => useGameStore.getState().toggleCamera()} onToggleTime={() => useGameStore.getState().toggleTimeOfDay()} onToggleWeather={() => useGameStore.getState().toggleWeather()}
       onPauseResume={resume} onPauseSave={save} onReturnTitle={returnToTitle} />}
     {inGame && dialogue && <BribeDialogue offer={offer} onClose={() => { setDialogue(false); if (!donating && !characterDialogue) document.body.requestPointerLock?.(); }} />}

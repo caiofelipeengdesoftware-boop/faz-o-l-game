@@ -1,13 +1,14 @@
 import type { StateCreator } from 'zustand';
 import type { GameStore } from '../index';
 
-export type QuestId = 'contracts' | 'witness' | 'patrol';
+export type QuestId = 'contracts' | 'witness' | 'patrol' | 'chase';
 export type QuestStatus = 'available' | 'active' | 'complete';
 export type QuestProgress = { id: QuestId; status: QuestStatus; progress: number };
-export const QUESTS: { id: QuestId; title: string; description: string; steps: string[]; reward: number; reputation: number; target: [number, number] }[] = [
+export const QUESTS: { id: QuestId; title: string; description: string; steps: string[]; reward: number; reputation: number; target: [number, number]; requires?: QuestId }[] = [
   { id: 'contracts', title: 'Contratos suspeitos', description: 'Encontre a pasta no depósito e recupere as provas.', steps: ['Aceitar a ocorrência', 'Investigar o depósito', 'Concluir o confronto'], reward: 700, reputation: 8, target: [45, -43] },
-  { id: 'witness', title: 'Uma testemunha ouviu', description: 'Converse com Marina, perto da avenida norte.', steps: ['Localizar Marina', 'Registrar o depoimento'], reward: 350, reputation: 5, target: [-8, -25] },
+  { id: 'witness', title: 'Uma testemunha ouviu', description: 'Converse com Marina, na esquina da avenida central com a rua norte.', steps: ['Localizar Marina', 'Registrar o depoimento'], reward: 350, reputation: 5, target: [-5.4, -27] },
   { id: 'patrol', title: 'Ronda preventiva', description: 'Passe por três pontos do bairro para verificar a área.', steps: ['Visitar ponto 1', 'Visitar ponto 2', 'Visitar ponto 3'], reward: 500, reputation: 4, target: [-45, -15] },
+  { id: 'chase', title: 'Perseguição: o mensageiro', description: 'Tavinho entregava as caixas do esquema. Alcance-o a pé antes que ele escape e faça-o falar.', steps: ['Encontrar Tavinho', 'Alcançar o fugitivo', 'Interrogar Tavinho'], reward: 900, reputation: 10, target: [35.4, -33], requires: 'witness' },
 ];
 const INITIAL: QuestProgress[] = QUESTS.map(({ id }) => ({ id, status: 'available', progress: 0 }));
 
@@ -27,6 +28,8 @@ export const createQuestSlice: StateCreator<GameStore, [], [], QuestSlice> = (se
   acceptQuest: (id) => {
     const found = get().quests.find((quest) => quest.id === id);
     if (!found || found.status !== 'available') return;
+    const required = QUESTS.find((quest) => quest.id === id)?.requires;
+    if (required && get().quests.find((quest) => quest.id === required)?.status !== 'complete') return;
     set((state) => ({ quests: state.quests.map((quest) => quest.id === id ? { ...quest, status: 'active' } : quest), trackedQuestId: id }));
   },
   trackQuest: (id) => set((state) => ({ trackedQuestId: id && state.quests.some((quest) => quest.id === id && quest.status === 'active') ? id : null })),
