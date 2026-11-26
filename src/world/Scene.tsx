@@ -15,13 +15,14 @@ import { HouseDoor, InteriorRoom } from './Interior';
 import { ClubExterior, ClubInterior, ClubSoundscape } from './Club';
 import { Animals } from './Animals';
 import { RemotePlayers } from '../multiplayer/Multiplayer';
+import { Effects } from './Effects';
 
 export function Scene({ onInteract, enabled }: { onInteract: () => void; enabled: boolean }) {
   const isInside = useGameStore((state) => state.isInside);
   const interiorKind = useGameStore((state) => state.interiorKind);
   const showQuestBoard = useGameStore((state) => state.showQuestBoard);
   return <>
-    <color attach="background" args={['#a8afa4']} /><fogExp2 attach="fog" args={['#a8afa4', 0.0027]} />
+    <color attach="background" args={['#a8afa4']} /><fogExp2 attach="fog" args={['#a8afa4', 0.0019]} />
     <Atmosphere /><Rain /><ReflectionEnvironment /><ClubSoundscape />
     <Physics gravity={[0, -9.81, 0]} timeStep="vary" paused={!enabled || showQuestBoard}>
       <InputManager enabled={enabled && !showQuestBoard} />
@@ -36,6 +37,7 @@ export function Scene({ onInteract, enabled }: { onInteract: () => void; enabled
       </>}
       <Player />
     </Physics>
+    <Effects />
   </>;
 }
 

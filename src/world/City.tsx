@@ -3,15 +3,20 @@ import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { CanvasTexture, Color, Object3D, RepeatWrapping, SRGBColorSpace, type InstancedMesh } from 'three';
 import { useGameStore } from '../state';
 import { OptionalGlb } from './OptionalGlb';
+import { Terrain } from './Terrain';
 
 const STREETS = [-60, -30, 0, 30, 60];
 const COLORS = ['#c6a17c', '#c7c3ae', '#99aaa0', '#b98d79', '#d0bc93', '#8fa3a4', '#bfad9a', '#c48b59'];
 
-function Facade({ color }: { color: string }) {
-  const texture = useMemo(() => {
+function Facade({ color, height, seed }: { color: string; height: number; seed: number }) {
+  const night = useGameStore((state) => state.timeOfDay === 'night');
+  const rows = Math.max(1, Math.round(height / 6.5));
+  const { map, glow } = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 256; canvas.height = 512;
     const ctx = canvas.getContext('2d')!;
+    const lit = document.createElement('canvas'); lit.width = 256; lit.height = 512;
+    const lctx = lit.getContext('2d')!; lctx.fillStyle = '#000'; lctx.fillRect(0, 0, 256, 512);
     ctx.fillStyle = color; ctx.fillRect(0, 0, 256, 512);
     const brick = color === '#b98d79' || color === '#c48b59';
     if (brick) {
@@ -26,23 +31,27 @@ function Facade({ color }: { color: string }) {
     for (let row = 0; row < 7; row++) for (let col = 0; col < 4; col++) {
       const x = 22 + col * 62; const y = 24 + row * 68;
       ctx.fillStyle = '#54483e'; ctx.fillRect(x - 4, y - 4, 43, 43);
+      const on = ((seed * 31 + row * 17 + col * 7) % 5) < 2;
       ctx.fillStyle = ['#73929b', '#91a7a7', '#667f86', '#a6aaa1'][(row + col) % 4]; ctx.fillRect(x, y, 35, 33);
+      if (on) { lctx.fillStyle = ['#ffd995', '#ffe7b8', '#ffc978'][(row + col + seed) % 3]; lctx.fillRect(x, y, 35, 33); }
       ctx.fillStyle = '#d2c7b1'; ctx.fillRect(x + 16, y, 3, 33); ctx.fillRect(x, y + 29, 35, 4);
     }
     ctx.globalAlpha = 0.22; ctx.fillStyle = '#3d3730';
     for (let i = 0; i < 140; i++) { const x = (i * 73) % 256; const y = (i * 137) % 512; ctx.fillRect(x, y, 2 + (i % 4), 1 + (i % 3)); }
-    const map = new CanvasTexture(canvas); map.colorSpace = SRGBColorSpace; map.anisotropy = 8; return map;
-  }, [color]);
-  return <meshStandardMaterial map={texture} roughness={0.82} metalness={0.04} />;
+    const base = new CanvasTexture(canvas); base.colorSpace = SRGBColorSpace; base.anisotropy = 8; base.wrapT = RepeatWrapping; base.repeat.set(1, rows);
+    const emit = new CanvasTexture(lit); emit.colorSpace = SRGBColorSpace; emit.wrapT = RepeatWrapping; emit.repeat.set(1, rows);
+    return { map: base, glow: emit };
+  }, [color, rows, seed]);
+  return <meshStandardMaterial map={map} roughness={0.82} metalness={0.04} emissive="#ffffff" emissiveMap={glow} emissiveIntensity={night ? 1.5 : 0} />;
 }
 
 function Building({ x, z, width, depth, height, color, seed }: { x: number; z: number; width: number; depth: number; height: number; color: string; seed: number }) {
-  const floors = height > 6.3 ? 2 : 1;
+  const floors = Math.max(1, Math.min(4, Math.round(height / 6.5)));
   const tank = seed % 3 === 0;
   return <RigidBody type="fixed" colliders={false} position={[x, height / 2, z]}>
     <CuboidCollider args={[width / 2, height / 2, depth / 2]} />
     <OptionalGlb url="/models/predio.glb" scale={[width, height, depth]} fallback={<>
-      <mesh castShadow receiveShadow><boxGeometry args={[width, height, depth]} /><Facade color={color} /></mesh>
+      <mesh castShadow receiveShadow><boxGeometry args={[width, height, depth]} /><Facade color={color} height={height} seed={seed} /></mesh>
       <mesh castShadow position={[0, height / 2 + 0.08, 0]}><boxGeometry args={[width + 0.38, 0.16, depth + 0.38]} /><meshStandardMaterial color={seed % 2 ? '#69675c' : '#777166'} roughness={0.95} /></mesh>
       <mesh castShadow position={[0, -height / 2 + 0.58, depth / 2 + 0.026]}><boxGeometry args={[0.92, 1.12, 0.07]} /><meshStandardMaterial color="#493b31" roughness={0.92} /></mesh>
       <mesh position={[0, -height / 2 + 1.36, depth / 2 + 0.03]}><boxGeometry args={[1.18, 0.09, 0.09]} /><meshStandardMaterial color="#c5b38d" roughness={0.94} /></mesh>
@@ -52,6 +61,8 @@ function Building({ x, z, width, depth, height, color, seed }: { x: number; z: n
         <mesh position={[0, 0.02, 0.08]}><boxGeometry args={[0.055, 1.0, 0.035]} /><meshStandardMaterial color="#c8baa0" /></mesh>
       </group>)}
       <mesh castShadow position={[0, -height / 2 + 0.12, 0]}><boxGeometry args={[width + 0.42, 0.24, depth + 0.42]} /><meshStandardMaterial color="#77766c" roughness={1} /></mesh>
+      <mesh castShadow position={[-width * 0.22, height / 2 + 0.42, depth * 0.18]}><boxGeometry args={[1.5, 0.7, 1.1]} /><meshStandardMaterial color="#8b8d87" roughness={0.7} metalness={0.3} /></mesh>
+      {height > 10 && <mesh castShadow position={[width * 0.3, height / 2 + 2.2, -depth * 0.2]}><cylinderGeometry args={[0.04, 0.06, 4.4, 5]} /><meshStandardMaterial color="#444" metalness={0.8} /></mesh>}
       {tank && <group position={[width * 0.25, height / 2 + 0.86, -depth * 0.2]}>
         <mesh castShadow><cylinderGeometry args={[0.7, 0.74, 1.45, 12]} /><meshStandardMaterial color="#77786d" roughness={0.8} /></mesh>
         <mesh position-y={0.75}><cylinderGeometry args={[0.72, 0.72, 0.1, 12]} /><meshStandardMaterial color="#454943" /></mesh>
@@ -116,6 +127,8 @@ function StreetLamp({ x, z, illuminate }: { x: number; z: number; illuminate: bo
 }
 
 function RoadNetwork() {
+  const wet = useGameStore((state) => state.weather === 'rain');
+  const roadRoughness = wet ? 0.28 : 0.97; const roadMetal = wet ? 0.35 : 0;
   const dashes = Array.from({ length: 12 }, (_, i) => (i - 5.5) * 12);
   const asphalt = useMemo(() => {
     const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
@@ -132,8 +145,8 @@ function RoadNetwork() {
   return <group>
     <mesh receiveShadow rotation-x={-Math.PI / 2} position={[0, -0.08, 0]}><planeGeometry args={[180, 180]} /><meshStandardMaterial color="#8d8b7c" roughness={1} /></mesh>
     {STREETS.map((x) => <group key={`v${x}`}>
-      <mesh receiveShadow position={[x, 0.015, 0]}><boxGeometry args={[12, 0.08, 160]} /><meshStandardMaterial map={asphalt} color="#55595a" roughness={0.97} /></mesh>
-      {[-1, 1].map((side) => <mesh key={side} receiveShadow position={[x + side * 7.8, 0.13, 0]}><boxGeometry args={[3.4, 0.24, 160]} /><meshStandardMaterial color="#a9a696" roughness={0.95} /></mesh>)}
+      <mesh receiveShadow position={[x, 0.015, 0]}><boxGeometry args={[12, 0.08, 160]} /><meshStandardMaterial map={asphalt} color={wet ? "#3c4244" : "#55595a"} roughness={roadRoughness} metalness={roadMetal} /></mesh>
+      {[-1, 1].map((side) => <mesh key={side} receiveShadow position={[x + side * 7.8, 0.13, 0]}><boxGeometry args={[3.4, 0.24, 160]} /><meshStandardMaterial color={wet ? "#8d8b7f" : "#a9a696"} roughness={wet ? 0.55 : 0.95} /></mesh>)}
       {dashes.map((z) => <mesh key={z} position={[x, 0.067, z]}><boxGeometry args={[0.16, 0.025, 4.6]} /><meshStandardMaterial color="#dfd5ae" /></mesh>)}
     </group>)}
     {STREETS.map((z) => <group key={`h${z}`}>
@@ -141,8 +154,8 @@ function RoadNetwork() {
         const center = x + 15;
         const segmentDashes = Array.from({ length: 2 }, (_, i) => center + (i ? 4.5 : -4.5));
         return <group key={segment}>
-          <mesh receiveShadow position={[center, 0.016, z]}><boxGeometry args={[18, 0.08, 12]} /><meshStandardMaterial map={asphalt} color="#55595a" roughness={0.97} /></mesh>
-          {[-1, 1].map((side) => <mesh key={side} receiveShadow position={[center, 0.13, z + side * 7.8]}><boxGeometry args={[18, 0.24, 3.4]} /><meshStandardMaterial color="#a9a696" roughness={0.95} /></mesh>)}
+          <mesh receiveShadow position={[center, 0.016, z]}><boxGeometry args={[18, 0.08, 12]} /><meshStandardMaterial map={asphalt} color={wet ? "#3c4244" : "#55595a"} roughness={roadRoughness} metalness={roadMetal} /></mesh>
+          {[-1, 1].map((side) => <mesh key={side} receiveShadow position={[center, 0.13, z + side * 7.8]}><boxGeometry args={[18, 0.24, 3.4]} /><meshStandardMaterial color={wet ? "#8d8b7f" : "#a9a696"} roughness={wet ? 0.55 : 0.95} /></mesh>)}
           {segmentDashes.map((dash) => <mesh key={dash} position={[dash, 0.068, z]}><boxGeometry args={[4.2, 0.025, 0.16]} /><meshStandardMaterial color="#dfd5ae" /></mesh>)}
         </group>;
       })}
@@ -159,20 +172,6 @@ function RoadNetwork() {
   </group>;
 }
 
-function HillsideBackdrop() {
-  return <group>
-    {[
-      { position: [-76, -18, -86] as [number, number, number], scale: [52, 25, 34] as [number, number, number], color: '#65734c' },
-      { position: [74, -20, -92] as [number, number, number], scale: [48, 27, 32] as [number, number, number], color: '#748052' },
-      { position: [-91, -19, 88] as [number, number, number], scale: [45, 25, 44] as [number, number, number], color: '#657249' },
-      { position: [82, -21, 94] as [number, number, number], scale: [52, 28, 40] as [number, number, number], color: '#707c4e' },
-      { position: [0, -24, 125] as [number, number, number], scale: [91, 35, 38] as [number, number, number], color: '#7b8050' },
-    ].map((hill, index) => <mesh key={index} position={hill.position} scale={hill.scale} receiveShadow={false} castShadow={false}>
-      <sphereGeometry args={[1, 24, 12]} /><meshStandardMaterial color={hill.color} roughness={1} flatShading />
-    </mesh>)}
-  </group>;
-}
-
 export function City() {
   const buildings = useMemo(() => {
     const sites: { x: number; z: number; width: number; depth: number; height: number; color: string }[] = [];
@@ -183,10 +182,11 @@ export function City() {
         const width = 7.1 + seed % 9 * 0.12;
         const depth = 7.2 + (seed >> 2) % 8 * 0.1;
         const floors = seed % 5 === 0 ? 2 : 1;
+        const tower = ((blockX === 15 && blockZ === 15) || (blockX === 15 && blockZ === -15) || (blockX === -15 && blockZ === -15)) && (seed % 3 !== 0);
         sites.push({
           x: blockX + column * 4.55 + ((seed % 3) - 1) * 0.28,
           z: blockZ + row * 4.55 + (((seed >> 1) % 3) - 1) * 0.28,
-          width, depth, height: floors === 2 ? 6.4 + (seed % 5) * 0.22 : 3.7 + (seed % 6) * 0.16,
+          width, depth, height: tower ? 13 + (seed % 5) * 3.4 : floors === 2 ? 6.4 + (seed % 5) * 0.22 : 3.7 + (seed % 6) * 0.16,
           color: COLORS[seed % COLORS.length],
         });
       }
@@ -200,7 +200,7 @@ export function City() {
   ] as [number, number][], []);
   const lamps = useMemo(() => STREETS.flatMap((x) => STREETS.map((z) => [x + 9.2, z + 9.2] as [number, number])), []);
   return <group>
-    <HillsideBackdrop />
+    <Terrain />
     <RoadNetwork />
     {buildings.map((building, i) => <Building key={i} {...building} seed={i * 11 + 5} />)}
     <TreeInstances trees={trees} />

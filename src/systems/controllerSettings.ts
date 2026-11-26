@@ -1,7 +1,7 @@
 export type ControllerProfile = 'auto' | 'xbox' | 'playstation';
 export type ControllerSettings = { profile: ControllerProfile; deadzone: number; sensitivity: number; mouseSensitivity: number; graphicsQuality: 'performance' | 'balanced' | 'quality'; invertY: boolean };
 const KEY = 'faz-o-l-controller-settings-v1';
-const DEFAULTS: ControllerSettings = { profile: 'auto', deadzone: 0.12, sensitivity: 1.4, mouseSensitivity: 1, graphicsQuality: 'balanced', invertY: false };
+const DEFAULTS: ControllerSettings = { profile: 'auto', deadzone: 0.12, sensitivity: 1.4, mouseSensitivity: 1, graphicsQuality: typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches ? 'performance' : 'balanced', invertY: false };
 let settings = (() => {
   try {
     const saved = typeof localStorage === 'undefined' ? null : localStorage.getItem(KEY);

@@ -198,7 +198,7 @@ export default function App() {
   const closeCharacterDialogue = () => { useGameStore.getState().closeCharacterDialogue(); if (inGame && !dialogue && !donating && navigator.maxTouchPoints === 0) document.body.requestPointerLock?.(); };
 
   return <main className="game-shell">
-    <Canvas shadows camera={{ position: [0, 5, 12], fov: 58, near: 0.1, far: 220 }} dpr={[1, 1.2]} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ gl }) => { gl.shadowMap.enabled = true; gl.shadowMap.type = PCFSoftShadowMap; }}>
+    <Canvas shadows camera={{ position: [0, 5, 12], fov: 58, near: 0.1, far: 520 }} dpr={[1, 1.2]} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ gl }) => { gl.shadowMap.enabled = true; gl.shadowMap.type = PCFSoftShadowMap; }}>
       {inGame ? <Suspense fallback={<LoadingBackdrop />}><GameScene enabled={!dialogue && !donating && !characterDialogue && !showQuestBoard} onInteract={() => { setDialogue(true); document.exitPointerLock?.(); }} /></Suspense> : <TitleBackdrop />}
       <GraphicsQuality />
     </Canvas>

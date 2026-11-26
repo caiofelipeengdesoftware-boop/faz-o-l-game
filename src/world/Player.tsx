@@ -7,6 +7,7 @@ import { hitCombatTarget, hitNearestCombatTarget } from '../systems/combatTarget
 import { playFootstep, playGunshot, playImpact } from '../systems/audio';
 import { useGameStore } from '../state';
 import { OptionalGlb } from './OptionalGlb';
+import { PoliceBody } from './PoliceBody';
 
 export function Player() {
   const bodyRef = useRef<RapierRigidBody>(null);
@@ -81,7 +82,14 @@ export function Player() {
       const deltaYaw = Math.atan2(Math.sin(heading - modelRef.current.rotation.y), Math.cos(heading - modelRef.current.rotation.y));
       modelRef.current.rotation.y += deltaYaw * (1 - Math.exp(-(gameInput.aim ? 12 : 7) * dt));
     }
-    if (modelRef.current) modelRef.current.scale.y = MathUtils.damp(modelRef.current.scale.y, isCrouched ? 0.76 : 1, 9, dt);
+    if (modelRef.current) {
+      const model = modelRef.current; model.rotation.order = 'YXZ';
+      model.scale.y = MathUtils.damp(model.scale.y, isCrouched ? 0.76 : 1, 9, dt);
+      const bob = moving ? Math.abs(Math.sin(gait.current)) * (gameInput.run ? 0.07 : 0.035) : 0;
+      model.position.y = MathUtils.damp(model.position.y, bob, 14, dt);
+      const lean = moving && !gameInput.aim ? (gameInput.run ? 0.2 : 0.06) * strength : 0;
+      model.rotation.x = MathUtils.damp(model.rotation.x, lean, 8, dt);
+    }
     if (firstPersonWeapon.current) { firstPersonWeapon.current.rotation.y = yaw.current; firstPersonWeapon.current.rotation.x = -pitch.current; }
     if (headRef.current) {
       const bodyYaw = modelRef.current?.rotation.y ?? yaw.current;
@@ -144,7 +152,7 @@ export function Player() {
       camera.lookAt(desiredCamera.current.copy(cameraTarget.current).addScaledVector(forward.current, 18));
     }
     if (camera instanceof PerspectiveCamera) {
-      camera.fov = MathUtils.damp(camera.fov, gameInput.aim ? 53 : 68, 7, dt);
+      camera.fov = MathUtils.damp(camera.fov, gameInput.aim ? 53 : gameInput.run && strength > 0.3 ? 75 : 68, 5, dt);
       camera.updateProjectionMatrix();
     }
     recoil.current = MathUtils.damp(recoil.current, 0, 12, dt);
@@ -186,26 +194,7 @@ export function Player() {
 
   return <RigidBody ref={bodyRef} colliders={false} mass={1} enabledRotations={[false, false, false]} position={[0, 0.92, -8]} linearDamping={0}>
     <CapsuleCollider args={[0.55, 0.34]} friction={0.1} />
-    <group ref={modelRef}><OptionalGlb url="/models/player.glb" scale={1} fallback={<group>
-      <mesh castShadow position={[0, 0.25, 0]}><capsuleGeometry args={[0.31, 0.67, 5, 10]} /><meshStandardMaterial color="#225b8d" roughness={0.8} /></mesh>
-      <group ref={headRef} position={[0, 0.92, 0]}>
-        <mesh castShadow><sphereGeometry args={[0.23, 18, 14]} /><meshStandardMaterial color="#c98d69" roughness={0.85} /></mesh>
-        <mesh castShadow position={[0, 0.18, -0.01]}><cylinderGeometry args={[0.235, 0.24, 0.1, 18]} /><meshStandardMaterial color="#164779" roughness={0.65} /></mesh>
-        <mesh castShadow position={[0, 0.21, 0]}><cylinderGeometry args={[0.26, 0.26, 0.035, 18]} /><meshStandardMaterial color="#1d5b92" /></mesh>
-        <mesh position={[0, 0.1, 0.218]}><boxGeometry args={[0.075, 0.12, 0.018]} /><meshStandardMaterial color="#e6c66e" metalness={0.6} /></mesh>
-      </group>
-      <group ref={leftArm} position={[-0.36, 0.55, 0]}><mesh castShadow position-y={-0.24}><capsuleGeometry args={[0.12, 0.55, 4, 8]} /><meshStandardMaterial color="#225b8d" /></mesh></group>
-      <group ref={rightArm} position={[0.36, 0.55, 0]}><mesh castShadow position-y={-0.24}><capsuleGeometry args={[0.12, 0.55, 4, 8]} /><meshStandardMaterial color="#225b8d" /></mesh></group>
-      <group ref={leftLeg} position={[-0.16, -0.28, 0]}><mesh castShadow position-y={-0.32}><capsuleGeometry args={[0.13, 0.58, 4, 8]} /><meshStandardMaterial color="#1b2732" /></mesh><mesh castShadow position={[0, -0.65, 0.07]}><boxGeometry args={[0.34, 0.14, 0.45]} /><meshStandardMaterial color="#111820" /></mesh></group>
-      <group ref={rightLeg} position={[0.16, -0.28, 0]}><mesh castShadow position-y={-0.32}><capsuleGeometry args={[0.13, 0.58, 4, 8]} /><meshStandardMaterial color="#1b2732" /></mesh><mesh castShadow position={[0, -0.65, 0.07]}><boxGeometry args={[0.34, 0.14, 0.45]} /><meshStandardMaterial color="#111820" /></mesh></group>
-      <mesh castShadow position={[-0.2, 0.45, -0.16]} rotation-z={-0.44}><boxGeometry args={[0.16, 0.95, 0.17]} /><meshStandardMaterial color="#171c1e" metalness={0.55} roughness={0.55} /></mesh>
-      <mesh castShadow position={[-0.2, 0.91, -0.16]} rotation-z={-0.44}><boxGeometry args={[0.28, 0.16, 0.21]} /><meshStandardMaterial color="#252b2b" metalness={0.5} /></mesh>
-      <group position={[0.43, -0.08, 0.14]}>
-        <mesh castShadow position={[0, 0.02, 0]}><boxGeometry args={[0.12, 0.16, 0.28]} /><meshStandardMaterial color="#171b1c" metalness={0.55} roughness={0.45} /></mesh>
-        <mesh castShadow position={[0, 0.06, 0.16]}><boxGeometry args={[0.08, 0.08, 0.24]} /><meshStandardMaterial color="#242a2a" metalness={0.6} roughness={0.4} /></mesh>
-        <group ref={muzzleFlash} visible={false} position={[0, 0.06, 0.3]}><pointLight color="#ffbf5e" intensity={3.5} distance={2.3} /><mesh><sphereGeometry args={[0.075, 8, 6]} /><meshBasicMaterial color="#fff0b0" /></mesh></group>
-      </group>
-    </group>} /></group>
+    <group ref={modelRef}><OptionalGlb url="/models/player.glb" scale={1} fallback={<PoliceBody leftArm={leftArm} rightArm={rightArm} leftLeg={leftLeg} rightLeg={rightLeg} headRef={headRef} muzzleFlash={muzzleFlash} />} /></group>
     <group ref={firstPersonWeapon} visible={false} position={[0, 0.45, 0]}>
       <mesh castShadow position={[0.36, 0.08, 0.35]}><boxGeometry args={[0.1, 0.1, 0.38]} /><meshStandardMaterial color="#171b1c" metalness={0.55} roughness={0.45} /></mesh>
       <mesh castShadow position={[0.36, -0.08, 0.19]} rotation-x={-0.2}><boxGeometry args={[0.1, 0.2, 0.12]} /><meshStandardMaterial color="#171b1c" roughness={0.8} /></mesh>
