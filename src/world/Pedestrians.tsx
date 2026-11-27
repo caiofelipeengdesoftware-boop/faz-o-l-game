@@ -44,7 +44,7 @@ function makeLook(index: number): PersonLook {
   return {
     skin: SKINS[(index * 5 + 1) % SKINS.length], hair: STYLES[index % STYLES.length], hairColor: HAIRS[(index * 3) % HAIRS.length],
     top: TOPS[(index * 7 + 2) % TOPS.length], bottom: BOTTOMS[index % BOTTOMS.length], outfit, shortSleeves: index % 3 === 0,
-    glasses: index % 5 === 2, scale: 0.92 + (index % 5) * 0.035, width: 0.94 + (index % 4) * 0.05,
+    glasses: index % 5 === 2, build: outfit === 'dress' || STYLES[index % STYLES.length] === 'long' || STYLES[index % STYLES.length] === 'bun' ? 'female' : 'male', scale: 0.92 + (index % 5) * 0.035, width: 0.94 + (index % 4) * 0.05,
   };
 }
 
