@@ -134,7 +134,7 @@ export default function App() {
   const controllerName = useGameStore((state) => state.controllerName);
   const timeOfDay = useGameStore((state) => state.timeOfDay);
   const weather = useGameStore((state) => state.weather);
-  const showQuestBoard = useGameStore((state) => state.showQuestBoard);
+  const showQuestBoard = useGameStore((state) => state.showQuestBoard || state.showPhone);
   const characterDialogue = useGameStore((state) => state.characterDialogue);
   const pauseRequested = useGameStore((state) => state.pauseRequested);
   const inGame = screen === 'game';

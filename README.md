@@ -80,3 +80,7 @@ O carregador testa se o arquivo existe e se não é uma resposta HTML. Se não e
 ## Limites desta versão
 
 Os personagens, veículos, animais, boate e edifícios desta demonstração usam formas procedurais; os personagens não têm captura de movimento e as motos ainda não são veículos pilotáveis. Os papéis online são de identificação e não têm conjuntos exclusivos de habilidades. A sala é pública, sem login, e precisa de um servidor Node acessível pela internet para conectar jogadores; WebRTC pode exigir TURN em redes restritas.
+
+
+## Online
+Veja `ONLINE.md` para hospedar o servidor multiplayer (Render) e fazer o modo online funcionar.

@@ -25,6 +25,7 @@ export interface WorldSlice {
   isInside: boolean;
   interiorKind: 'home' | 'club';
   showQuestBoard: boolean;
+  showPhone: boolean;
   isCrouched: boolean;
   headlightsOn: boolean;
   radioStation: number;
@@ -51,6 +52,8 @@ export interface WorldSlice {
   enterInterior: (kind?: 'home' | 'club') => void;
   exitInterior: () => void;
   toggleQuestBoard: () => void;
+  togglePhone: () => void;
+  closePhone: () => void;
   toggleCrouch: () => void;
   toggleHeadlights: () => void;
   cycleRadio: () => void;
@@ -85,6 +88,7 @@ export const createWorldSlice: StateCreator<WorldSlice> = (set, get) => ({
   isInside: false,
   interiorKind: 'home',
   showQuestBoard: false,
+  showPhone: false,
   isCrouched: false,
   headlightsOn: false,
   radioStation: 0,
@@ -111,6 +115,8 @@ export const createWorldSlice: StateCreator<WorldSlice> = (set, get) => ({
   enterInterior: (kind = 'home') => set((state) => ({ isInside: true, interiorKind: kind, playerPosition: [0, 0], playerTeleport: state.playerTeleport + 1 })),
   exitInterior: () => set((state) => ({ isInside: false, playerPosition: state.interiorKind === 'club' ? [-15, 11] : [-45, -37], playerTeleport: state.playerTeleport + 1 })),
   toggleQuestBoard: () => set((state) => ({ showQuestBoard: !state.showQuestBoard })),
+  togglePhone: () => set((state) => ({ showPhone: !state.showPhone, showQuestBoard: false })),
+  closePhone: () => set({ showPhone: false }),
   toggleCrouch: () => set((state) => ({ isCrouched: !state.isCrouched })),
   toggleHeadlights: () => set((state) => ({ headlightsOn: !state.headlightsOn })),
   cycleRadio: () => set((state) => ({ radioStation: (state.radioStation + 1) % 4 })),

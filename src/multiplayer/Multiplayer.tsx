@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text } from '@react-three/drei';
+import { Html } from '@react-three/drei';
 import { create } from 'zustand';
 import { io, type Socket } from 'socket.io-client';
 import { MathUtils, type Group } from 'three';
 import { useGameStore } from '../state';
 import type { QuestId, QuestProgress } from '../state/slices/questSlice';
 import { gameInput } from '../systems/gameInput';
+import { newMotion, Person, type PersonLook } from '../world/Person';
 
 export type GameRole = 'police' | 'civilian' | 'criminal';
 export type RemotePlayer = { id: string; name: string; role: GameRole; x: number; z: number; yaw: number; walking: boolean; sprinting: boolean; driving: boolean };
@@ -167,16 +168,25 @@ export function MultiplayerOverlay({ active }: { active: boolean }) {
   };
 
   if (!active) return null;
-  return <div className="multiplayer-badge"><span className={connected ? 'network-dot online' : 'network-dot'} />{connected ? `${remotePlayers.length + 1} NO DISTRITO` : 'MULTIPLAYER OFFLINE'}<button title={voiceError || (voiceOn ? 'Desativar chat de voz' : 'Ativar microfone')} onClick={() => void toggleVoice()} className={voiceOn ? 'voice-on' : ''}>🎙 {voiceOn ? 'VOZ ATIVA' : 'VOZ'}</button></div>;
+  return <div className="multiplayer-badge"><span className={connected ? 'network-dot online' : 'network-dot'} />{connected ? `${remotePlayers.length + 1} NO DISTRITO` : 'ONLINE INDISPONÍVEL'}<button title={voiceError || (voiceOn ? 'Desativar chat de voz' : 'Ativar microfone')} onClick={() => void toggleVoice()} className={voiceOn ? 'voice-on' : ''}>🎙 {voiceOn ? 'VOZ ATIVA' : 'VOZ'}</button></div>;
+}
+
+const TOPS = ['#5892ad', '#b96545', '#6b8180', '#c4a66f', '#6e627c', '#a38674', '#3f7a8c'];
+function remoteLook(player: RemotePlayer): PersonLook {
+  const seed = Array.from(player.name).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const skins = ['#f0c8a8', '#d9a074', '#b97a55', '#8d5a3b', '#6b4430'];
+  if (player.role === 'police') return { skin: skins[seed % 5], top: '#1f3556', bottom: '#17263d', outfit: 'uniform', hair: 'police-cap', badge: true };
+  if (player.role === 'criminal') return { skin: skins[seed % 5], top: '#2a2d30', bottom: '#1d1f22', outfit: 'hoodie', hair: 'beanie', hairColor: '#111', mask: seed % 2 === 0 };
+  return { skin: skins[seed % 5], top: TOPS[seed % TOPS.length], bottom: '#2d333a', hair: (['short', 'long', 'curly', 'bun', 'cap'] as const)[seed % 5], hairColor: '#2b211c', shortSleeves: seed % 2 === 0 };
 }
 
 function RemoteAvatar({ player }: { player: RemotePlayer }) {
-  const root = useRef<Group>(null); const arms = useRef<Group[]>([]); const legs = useRef<Group[]>([]); const latest = useRef(player);
+  const root = useRef<Group>(null); const latest = useRef(player); const motion = useRef(newMotion());
   latest.current = player;
   const speaking = useMultiplayerStore((state) => state.speaking.includes(player.id));
-  const uniform = player.role === 'police' ? '#477b9c' : player.role === 'criminal' ? '#4b4747' : '#5892ad';
+  const look = useMemo(() => remoteLook(player), [player.name, player.role]);
   const roleLabel = player.role === 'police' ? 'POLÍCIA' : player.role === 'criminal' ? 'FORAGIDO' : 'CIDADÃO';
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     const group = root.current; if (!group) return;
     const target = latest.current;
     const blend = 1 - Math.exp(-10 * Math.min(delta, 0.05));
@@ -184,20 +194,13 @@ function RemoteAvatar({ player }: { player: RemotePlayer }) {
     group.position.z = MathUtils.lerp(group.position.z, target.z, blend);
     const difference = Math.atan2(Math.sin(target.yaw - group.rotation.y), Math.cos(target.yaw - group.rotation.y));
     group.rotation.y += difference * blend;
-    const amount = target.walking ? Math.sin(state.clock.elapsedTime * (target.sprinting ? 12 : 8)) * (target.sprinting ? 0.65 : 0.42) : 0;
-    if (arms.current[0]) arms.current[0].rotation.x = amount;
-    if (arms.current[1]) arms.current[1].rotation.x = -amount;
-    if (legs.current[0]) legs.current[0].rotation.x = -amount;
-    if (legs.current[1]) legs.current[1].rotation.x = amount;
+    motion.current.speed = target.walking ? (target.sprinting ? 1.8 : 1) : 0;
   });
   return <group ref={root} position={[player.x, 0, player.z]}>
-    <mesh castShadow={false} position-y={player.driving ? 1.05 : 1.02}><capsuleGeometry args={[0.25, 0.65, 5, 8]} /><meshStandardMaterial color={uniform} roughness={0.88} /></mesh>
-    <mesh position-y={player.driving ? 1.72 : 1.68}><sphereGeometry args={[0.19, 12, 10]} /><meshStandardMaterial color="#bd896a" roughness={0.9} /></mesh>
-    <group ref={(node) => { if (node) arms.current[0] = node; }} position={[-0.27, 1.28, 0]}><mesh position-y={-0.25}><capsuleGeometry args={[0.09, 0.48, 4, 6]} /><meshStandardMaterial color="#5892ad" /></mesh></group>
-    <group ref={(node) => { if (node) arms.current[1] = node; }} position={[0.27, 1.28, 0]}><mesh position-y={-0.25}><capsuleGeometry args={[0.09, 0.48, 4, 6]} /><meshStandardMaterial color="#5892ad" /></mesh></group>
-    <group ref={(node) => { if (node) legs.current[0] = node; }} position={[-0.12, 0.58, 0]}><mesh position-y={-0.28}><capsuleGeometry args={[0.1, 0.47, 4, 6]} /><meshStandardMaterial color="#30383a" /></mesh></group>
-    <group ref={(node) => { if (node) legs.current[1] = node; }} position={[0.12, 0.58, 0]}><mesh position-y={-0.28}><capsuleGeometry args={[0.1, 0.47, 4, 6]} /><meshStandardMaterial color="#30383a" /></mesh></group>
-    <Text position={[0, 2.15, 0]} fontSize={0.2} color={speaking ? '#8ee3bd' : '#f0e8cf'} outlineWidth={0.02} outlineColor="#111512" anchorX="center" anchorY="bottom">{player.name}{speaking ? ' · VOZ' : ''}{` · ${roleLabel}`}</Text>
+    <Person look={look} motion={motion} />
+    <Html position={[0, 2.2, 0]} center zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
+      <div className="npc-tag" style={{ borderLeftColor: speaking ? '#8ee3bd' : '#e2c274' }}><b>{player.name}{speaking ? ' · VOZ' : ''}</b><small>{roleLabel}</small></div>
+    </Html>
   </group>;
 }
 

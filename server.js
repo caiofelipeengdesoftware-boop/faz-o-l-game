@@ -37,11 +37,12 @@ const rooms = new Map();
 const roomId = 'aurora';
 let sharedQuests = null;
 let sharedMission = { missionPhase: 'available', enemiesRemaining: 0 };
+const questIds = ['contracts', 'witness', 'patrol', 'chase'];
 function validQuests(payload) {
-  if (!payload || !Array.isArray(payload.quests) || payload.quests.length > 3) return null;
-  const ids = new Set(['contracts', 'witness', 'patrol']);
+  if (!payload || !Array.isArray(payload.quests) || payload.quests.length > questIds.length) return null;
+  const ids = new Set(questIds);
   const quests = payload.quests.filter((quest) => quest && ids.has(quest.id) && ['available', 'active', 'complete'].includes(quest.status) && Number.isInteger(quest.progress) && quest.progress >= 0 && quest.progress <= 3).map(({ id, status, progress }) => ({ id, status, progress }));
-  if (quests.length !== 3) return null;
+  if (quests.length !== questIds.length) return null;
   return { quests, trackedQuestId: ids.has(payload.trackedQuestId) ? payload.trackedQuestId : null };
 }
 function safeName(value) { return String(value ?? 'Investigador').replace(/[<>\u0000-\u001f]/g, '').trim().slice(0, 24) || 'Investigador'; }

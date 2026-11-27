@@ -3,6 +3,7 @@ import { useGameStore } from '../state';
 import { MiniMap } from './MiniMap';
 import { getControllerLabel, getControllerSettings } from '../systems/controllerSettings';
 import { QUESTS, type QuestId } from '../state/slices/questSlice';
+import { Phone } from './Phone';
 
 function QuestBoard({ onAccept }: { onAccept: (id: QuestId) => void }) {
   const quests = useGameStore((state) => state.quests);
@@ -56,7 +57,18 @@ function NoticeToast() {
   return notice ? <div className="notice-toast" role="status"><span>●</span>{notice.text}</div> : null;
 }
 
+function usePhoneKey() {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.repeat || (event.target as HTMLElement | null)?.tagName === 'INPUT') return;
+      if (event.key === 'p' || event.key === 'P') { document.exitPointerLock?.(); useGameStore.getState().togglePhone(); }
+    };
+    window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
+  }, []);
+}
+
 export function HUD({ onDonate, onMissionStart, onPause, onToggleCamera, onAcceptQuest }: { onDonate: () => void; onMissionStart: () => void; onPause: () => void; onToggleCamera: () => void; onAcceptQuest: (id: QuestId) => void }) {
+  usePhoneKey();
   const alert = useGameStore((state) => state.alertLevel);
   const interactHint = useGameStore((state) => state.interactHint);
   const health = useGameStore((state) => state.playerHealth);
@@ -90,6 +102,7 @@ export function HUD({ onDonate, onMissionStart, onPause, onToggleCamera, onAccep
   return <>
     <aside className={`wanted-status ${alert ? '' : 'is-calm'}`} aria-label="Nível de alerta"><span>{alert ? 'PROCURADO' : 'CIDADE EM PAZ'}</span><strong>{Array.from({ length: 5 }, (_, i) => <i key={i} className={i < alert ? 'star-on' : ''}>★</i>)}</strong><b className="ammo-readout">▣ {ammo}{missionPhase === 'shootout' && <small>· {enemies} ALVOS</small>}</b></aside>
     <nav className="gta-actions" aria-label="Ações do jogo">
+      <button className="hud-icon" title="Celular (P)" aria-label="Abrir celular" onClick={() => useGameStore.getState().togglePhone()}>☎</button>
       <button className="hud-icon" title="Trabalhos (J / direcional para cima)" aria-label="Abrir trabalhos" onClick={() => useGameStore.getState().toggleQuestBoard()}>☷</button>
       <button className={`hud-icon ${map ? 'is-selected' : ''}`} title="Mapa (M / View)" aria-label="Ampliar mapa" onClick={() => useGameStore.getState().toggleMap()}>▦</button>
       <button className="hud-icon" title="Trocar câmera (V)" aria-label="Trocar câmera" onClick={onToggleCamera}>◉</button>
@@ -112,6 +125,7 @@ export function HUD({ onDonate, onMissionStart, onPause, onToggleCamera, onAccep
     })}</section>
     {prompt && <div className="interact-prompt"><kbd>{isInside || inputDevice !== 'gamepad' ? 'E' : buttonName}</kbd>{prompt}</div>}
     {showQuestBoard && <QuestBoard onAccept={onAcceptQuest} />}
+    <Phone />
     {!isInside && missionPhase === 'available' && phaseQuest?.status === 'available' && <button className="minimal-mission-offer" onClick={onMissionStart}>Aceitar ocorrência <kbd>{inputDevice === 'gamepad' ? 'Y / △' : 'E'}</kbd></button>}
   </>;
 }

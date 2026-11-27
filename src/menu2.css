@@ -45,3 +45,30 @@
 .npc-tag{display:grid;gap:1px;padding:4px 9px;background:#0f1412cc;border:1px solid #ffffff22;border-left:2px solid #e2c274;white-space:nowrap;text-align:left;transform:translateY(-6px)}
 .npc-tag b{color:#f3ecd6;font:600 11px 'DM Sans',sans-serif}.npc-tag small{color:#b7b5a6;font:9px 'DM Mono',monospace;letter-spacing:.06em}
 .quest-lock{color:#8a8c82;font:10px 'DM Mono',monospace;letter-spacing:.08em}
+
+/* Celular do jogo */
+.phone-overlay{position:absolute;z-index:9;inset:0;display:flex;justify-content:flex-end;align-items:center;padding:0 clamp(12px,5vw,70px);background:radial-gradient(ellipse at 80% 50%,#0008,transparent 60%)}
+.phone{position:relative;width:min(330px,94vw);height:min(600px,92vh);display:flex;flex-direction:column;padding:12px 14px 12px;background:linear-gradient(180deg,#171c1a,#0e1211);border:1px solid #e2d4ad40;border-radius:30px;box-shadow:0 30px 100px #000c,inset 0 0 0 4px #0a0d0c;color:#ece8d8;font-family:'DM Sans',sans-serif;animation:phoneIn .28s ease both}
+@keyframes phoneIn{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:none}}
+.phone-notch{align-self:center;width:84px;height:5px;margin:2px 0 8px;border-radius:5px;background:#ffffff1c}
+.phone-status{display:flex;justify-content:space-between;padding:0 10px 10px;font:11px 'DM Mono',monospace;color:#cfcdbd}
+.phone-home,.phone-app{flex:1;min-height:0;display:flex;flex-direction:column}
+.phone-greeting{padding:14px;margin-bottom:16px;border:1px solid #ffffff14;background:#ffffff08;border-radius:16px}
+.phone-greeting small{font:9px 'DM Mono',monospace;letter-spacing:.14em;color:#9fa297}.phone-greeting strong{display:block;margin:2px 0 8px;font:600 30px 'Playfair Display',serif;color:#f1e8cf}
+.phone-bar{height:4px;background:#ffffff14;border-radius:4px;overflow:hidden}.phone-bar i{display:block;height:100%;background:#c6b17b}
+.phone-apps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.phone-apps button{display:grid;justify-items:center;gap:6px;padding:0;background:none;border:0;color:#d9d6c6;font:10px 'DM Sans',sans-serif}
+.phone-icon{position:relative;width:54px;height:54px;display:grid;place-items:center;border-radius:16px;background:linear-gradient(145deg,#2a312d,#1a201d);border:1px solid #ffffff1c;color:#e2c274;font-size:22px;transition:transform .15s}
+.phone-apps button:hover .phone-icon{transform:translateY(-3px);border-color:#e2c274}
+.phone-icon em{position:absolute;top:-5px;right:-5px;min-width:18px;padding:1px 5px;border-radius:9px;background:#d9604a;color:#fff;font:700 9px 'DM Sans',sans-serif;font-style:normal}
+.phone-map{margin-top:auto;padding:12px;border:1px solid #e2c27455;border-radius:14px;background:#e2c27412;color:#e8d9a8;font:12px 'DM Sans',sans-serif}
+.phone-app>header{display:flex;align-items:center;gap:10px;padding:2px 4px 10px}.phone-app>header button{width:30px;height:30px;border:0;border-radius:50%;background:#ffffff10;color:#e2c274;font-size:20px;line-height:1}.phone-app>header strong{font:600 15px 'DM Sans',sans-serif}
+.phone-scroll{flex:1;min-height:0;overflow:auto;display:grid;align-content:start;gap:8px;padding:2px 2px 8px}
+.phone-card,.phone-message,.phone-contact{padding:12px;border:1px solid #ffffff12;border-radius:12px;background:#ffffff07}
+.phone-card.is-active{border-color:#e2c27466}.phone-card>div{display:grid;gap:2px}.phone-card strong,.phone-message strong,.phone-contact strong{font:600 13px 'DM Sans',sans-serif}
+.phone-card small,.phone-contact small{font:9px 'DM Mono',monospace;letter-spacing:.08em;color:#a5a69a}.phone-card p,.phone-message p{margin:7px 0 0;font:12px/1.5 'DM Sans',sans-serif;color:#cfccbc}
+.phone-card button{margin-top:9px;padding:7px 11px;border:1px solid #e2c27455;border-radius:9px;background:transparent;color:#e8d9a8;font:11px 'DM Sans',sans-serif}
+.phone-message{border-left:3px solid #c6b17b}.phone-contact{display:flex;align-items:center;gap:12px}.phone-contact span{width:36px;height:36px;display:grid;place-items:center;border:1px solid;border-radius:50%;font:700 16px 'Playfair Display',serif}
+.phone-empty{margin:20px 6px;color:#9fa297;font:12px/1.5 'DM Sans',sans-serif}
+.phone-footer{padding-top:6px;text-align:center}.phone-footer button{padding:7px 18px;border:0;border-radius:14px;background:#ffffff10;color:#b9b8ab;font:10px 'DM Mono',monospace;letter-spacing:.08em}
+@media(max-width:700px){.phone-overlay{justify-content:center;padding:0}.phone{height:96vh;border-radius:24px}}

@@ -22,7 +22,7 @@ import { ChaseTarget } from './Chase';
 export function Scene({ onInteract, enabled }: { onInteract: () => void; enabled: boolean }) {
   const isInside = useGameStore((state) => state.isInside);
   const interiorKind = useGameStore((state) => state.interiorKind);
-  const showQuestBoard = useGameStore((state) => state.showQuestBoard);
+  const showQuestBoard = useGameStore((state) => state.showQuestBoard || state.showPhone);
   return <>
     <color attach="background" args={['#a8afa4']} /><fogExp2 attach="fog" args={['#a8afa4', 0.0019]} />
     <Atmosphere /><Rain /><ReflectionEnvironment /><ClubSoundscape />
