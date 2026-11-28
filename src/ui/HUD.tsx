@@ -57,20 +57,10 @@ function NoticeToast() {
   return notice ? <div className="notice-toast" role="status"><span>●</span>{notice.text}</div> : null;
 }
 
-function usePhoneKey() {
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.repeat || (event.target as HTMLElement | null)?.tagName === 'INPUT') return;
-      if (event.key === 'p' || event.key === 'P') { document.exitPointerLock?.(); useGameStore.getState().togglePhone(); }
-    };
-    window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
-  }, []);
-}
-
 export function HUD({ onDonate, onMissionStart, onPause, onToggleCamera, onAcceptQuest }: { onDonate: () => void; onMissionStart: () => void; onPause: () => void; onToggleCamera: () => void; onAcceptQuest: (id: QuestId) => void }) {
-  usePhoneKey();
   const alert = useGameStore((state) => state.alertLevel);
   const interactHint = useGameStore((state) => state.interactHint);
+  const wallet = useGameStore((state) => state.wallet); const waypoint = useGameStore((state) => state.waypoint); const playerPos = useGameStore((state) => state.playerPosition);
   const health = useGameStore((state) => state.playerHealth);
   const armor = useGameStore((state) => state.playerArmor);
   const ammo = useGameStore((state) => state.playerAmmo);
@@ -110,6 +100,7 @@ export function HUD({ onDonate, onMissionStart, onPause, onToggleCamera, onAccep
       <button className="hud-icon support-icon" title="Apoiar o desenvolvimento" aria-label="Apoiar o jogo" onClick={onDonate}>♡</button>
     </nav>
     {controllerConnected && <div className="input-device-chip">{inputDevice === 'gamepad' ? 'CONTROLE' : 'TECLADO · MOUSE'}</div>}
+    <div className="hud-wallet"><b>R$ {wallet.toLocaleString('pt-BR')}</b>{waypoint && <small>◆ {Math.round(Math.hypot(waypoint[0] - playerPos[0], waypoint[1] - playerPos[1]))} m</small>}</div>
     <MiniMap />
     <NoticeToast />
     <section className={`player-vitals ${health >= 100 && armor >= 100 ? 'is-full' : ''}`} aria-label="Vitalidade e colete">

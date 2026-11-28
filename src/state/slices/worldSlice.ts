@@ -23,7 +23,13 @@ export interface WorldSlice {
   notice: { id: number; text: string } | null;
   chasePosition: [number, number] | null;
   isInside: boolean;
-  interiorKind: 'home' | 'club';
+  interiorKind: 'home' | 'club' | 'shop';
+  pauseTab: 'map' | 'brief' | 'stats' | 'settings' | 'game' | 'online';
+  chatOpen: boolean;
+  wardrobeOpen: boolean;
+  quickChatOpen: boolean;
+  waypoint: [number, number] | null;
+  trackedPlayerId: string | null;
   showQuestBoard: boolean;
   showPhone: boolean;
   isCrouched: boolean;
@@ -49,7 +55,14 @@ export interface WorldSlice {
   toggleTimeOfDay: () => void;
   toggleWeather: () => void;
   setInputDevice: (device: 'gamepad' | 'keyboardMouse') => void;
-  enterInterior: (kind?: 'home' | 'club') => void;
+  enterInterior: (kind?: 'home' | 'club' | 'shop') => void;
+  setWaypoint: (point: [number, number] | null) => void;
+  setTrackedPlayer: (id: string | null) => void;
+  setPauseTab: (tab: WorldSlice['pauseTab']) => void;
+  openPause: (tab?: WorldSlice['pauseTab']) => void;
+  setChatOpen: (value: boolean) => void;
+  setWardrobeOpen: (value: boolean) => void;
+  setQuickChatOpen: (value: boolean) => void;
   exitInterior: () => void;
   toggleQuestBoard: () => void;
   togglePhone: () => void;
@@ -87,6 +100,12 @@ export const createWorldSlice: StateCreator<WorldSlice> = (set, get) => ({
   chasePosition: null,
   isInside: false,
   interiorKind: 'home',
+  pauseTab: 'map',
+  chatOpen: false,
+  wardrobeOpen: false,
+  quickChatOpen: false,
+  waypoint: null,
+  trackedPlayerId: null,
   showQuestBoard: false,
   showPhone: false,
   isCrouched: false,
@@ -112,8 +131,15 @@ export const createWorldSlice: StateCreator<WorldSlice> = (set, get) => ({
   toggleTimeOfDay: () => set((state) => ({ timeOfDay: state.timeOfDay === 'day' ? 'night' : 'day' })),
   toggleWeather: () => set((state) => ({ weather: state.weather === 'clear' ? 'rain' : 'clear' })),
   setInputDevice: (inputDevice) => set({ inputDevice }),
+  setWaypoint: (waypoint) => set({ waypoint }),
+  setTrackedPlayer: (trackedPlayerId) => set({ trackedPlayerId }),
+  setPauseTab: (pauseTab) => set({ pauseTab }),
+  openPause: (tab) => set((state) => ({ pauseRequested: true, pauseTab: tab ?? state.pauseTab })),
+  setChatOpen: (chatOpen) => set({ chatOpen }),
+  setWardrobeOpen: (wardrobeOpen) => set({ wardrobeOpen }),
+  setQuickChatOpen: (quickChatOpen) => set({ quickChatOpen }),
   enterInterior: (kind = 'home') => set((state) => ({ isInside: true, interiorKind: kind, playerPosition: [0, 0], playerTeleport: state.playerTeleport + 1 })),
-  exitInterior: () => set((state) => ({ isInside: false, playerPosition: state.interiorKind === 'club' ? [-15, 11] : [-45, -37], playerTeleport: state.playerTeleport + 1 })),
+  exitInterior: () => set((state) => ({ isInside: false, playerPosition: state.interiorKind === 'club' ? [-15, 11] : state.interiorKind === 'shop' ? [-49.55, -4.6] : [-45, -37], playerTeleport: state.playerTeleport + 1 })),
   toggleQuestBoard: () => set((state) => ({ showQuestBoard: !state.showQuestBoard })),
   togglePhone: () => set((state) => ({ showPhone: !state.showPhone, showQuestBoard: false })),
   closePhone: () => set({ showPhone: false }),

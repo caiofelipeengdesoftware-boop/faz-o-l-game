@@ -72,3 +72,15 @@
 .phone-empty{margin:20px 6px;color:#9fa297;font:12px/1.5 'DM Sans',sans-serif}
 .phone-footer{padding-top:6px;text-align:center}.phone-footer button{padding:7px 18px;border:0;border-radius:14px;background:#ffffff10;color:#b9b8ab;font:10px 'DM Mono',monospace;letter-spacing:.08em}
 @media(max-width:700px){.phone-overlay{justify-content:center;padding:0}.phone{height:96vh;border-radius:24px}}
+
+/* Chat */
+.chat-log{position:absolute;z-index:6;left:18px;bottom:128px;width:min(420px,60vw);display:grid;gap:3px;pointer-events:none;font:12px/1.4 'DM Sans',sans-serif;color:#f1ecd9;text-shadow:0 1px 3px #000}
+.chat-log p{margin:0;padding:3px 8px;background:#0a0e0ccc;border-left:2px solid #e2c27488}.chat-log b{margin-right:4px}.chat-log .chat-offline{color:#e8b4a8;border-left-color:#d9604a}
+.chat-input{position:absolute;z-index:8;left:18px;bottom:88px;width:min(420px,70vw);display:flex;gap:6px}
+.chat-input input{flex:1;padding:10px 12px;border:1px solid #e2c27488;background:#0b1010f2;color:#fff;font:13px 'DM Sans',sans-serif;outline:none}
+.chat-input button,.quick-chat button{padding:9px 14px;border:1px solid #ffffff2e;background:#151b19f5;color:#ece8d8;font:12px 'DM Sans',sans-serif}
+.quick-chat{position:absolute;z-index:8;left:50%;bottom:140px;transform:translateX(-50%);padding:16px;width:min(520px,92vw);background:#0b1010f5;border:1px solid #e2c27455;display:grid;gap:12px;color:#f1ecd9;font:13px 'DM Sans',sans-serif}
+.quick-chat>div{display:grid;grid-template-columns:1fr 1fr;gap:7px}.quick-chat button{text-align:left;display:flex;gap:10px;align-items:center}.quick-chat kbd{padding:1px 7px;border:1px solid #ffffff33;font:10px 'DM Mono',monospace;color:#e2c274}
+.quick-chat small{color:#9fa297;font:10px 'DM Mono',monospace}
+[data-pad-active]{outline:2px solid #e2c274 !important;outline-offset:2px;background:#e2c27420 !important}
+.hud-wallet{position:absolute;z-index:4;right:20px;top:216px;display:grid;justify-items:end;gap:2px;color:#9fffd0;font:700 14px 'DM Mono',monospace;text-shadow:0 1px 4px #000}.hud-wallet small{color:#7ad2b8;font-size:11px}

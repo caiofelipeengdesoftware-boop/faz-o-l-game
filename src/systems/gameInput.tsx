@@ -52,7 +52,9 @@ export function InputManager({ enabled }: { enabled: boolean }) {
 
   useEffect(() => {
     const markPc = () => useGameStore.getState().setInputDevice('keyboardMouse');
+    const typing = (event: KeyboardEvent) => { const target = event.target as HTMLElement | null; return Boolean(target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)); };
     const down = (event: KeyboardEvent) => {
+      if (typing(event)) return;
       const key = event.key.toLowerCase();
       if ([' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) event.preventDefault();
       keys.current.add(key); markPc();
@@ -107,14 +109,14 @@ export function InputManager({ enabled }: { enabled: boolean }) {
     const interact = pressed.has('e') || button(3) || touchInput.interact;
     const vehicle = pressed.has('f') || button(3) || touchInput.interact;
     const map = pressed.has('m') || pressed.has('z') || (!driving && button(8));
-    const quest = pressed.has('j') || button(12);
-    const camera = pressed.has('v') || (driving && button(8));
-    const pause = pressed.has('escape') || pressed.has('p') || button(9);
+    const quest = pressed.has('j') || (!driving && button(12));
+    const camera = pressed.has('x') || (driving && button(8));
+    const pause = pressed.has('escape') || button(9);
     const crouch = pressed.has('control') || (!driving && button(10));
     const headlights = pressed.has('h') || (driving && button(15));
     const radio = driving && (pressed.has('q') || button(14));
     const phase = useGameStore.getState().missionPhase;
-    const melee = pressed.has('q') && !driving && phase === 'shootout';
+    const melee = !driving && (pressed.has('g') || button(11) || (pressed.has('q') && phase === 'shootout'));
     const reload = pressed.has('r') || (!driving && button(1)) || touchInput.reload;
 
     gameInput.moveX = MathUtils.clamp(Number(pressed.has('d')) - Number(pressed.has('a')) + rawAxis(axes[0]) + touchInput.moveX, -1, 1);
@@ -139,8 +141,9 @@ export function InputManager({ enabled }: { enabled: boolean }) {
     gameInput.headlightsPressed = headlights && !was.current.headlights;
     gameInput.radioPressed = radio && !was.current.radio;
     if (gameInput.reloadPressed) useGameStore.getState().reloadAmmo();
-    if (gameInput.mapPressed) useGameStore.getState().toggleMap();
-    if (gameInput.questPressed) useGameStore.getState().toggleQuestBoard();
+    if (gameInput.mapPressed) useGameStore.getState().openPause('map');
+    if (gameInput.questPressed) useGameStore.getState().openPause('brief');
+    // Celular, voz e chat são tratados em systems/hotkeys.ts (teclado e controle, configuráveis).
     if (gameInput.cameraPressed) useGameStore.getState().toggleCamera();
     if (gameInput.pausePressed) useGameStore.getState().requestPause();
     if (gameInput.crouchPressed) useGameStore.getState().toggleCrouch();
@@ -152,7 +155,7 @@ export function InputManager({ enabled }: { enabled: boolean }) {
     gameInput.handbrake = pressed.has(' ') || (driving && (button(5) || button(0)));
     gameInput.cover = !driving && (button(5) || (pressed.has('q') && phase !== 'shootout'));
     gameInput.weaponWheel = pressed.has('tab') || button(4);
-    gameInput.lookBack = pressed.has('c') || button(11);
+    gameInput.lookBack = pressed.has('c') || (driving && button(11));
     gameInput.horn = (driving && pressed.has('e')) || (driving && button(10));
     gameInput.throttle = Math.max(Number(pressed.has('w')) * 0.85, trigger(7));
     gameInput.reverse = Math.max(Number(pressed.has('s')) * 0.6, trigger(6));

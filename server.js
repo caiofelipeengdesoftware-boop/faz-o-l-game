@@ -37,11 +37,11 @@ const rooms = new Map();
 const roomId = 'aurora';
 let sharedQuests = null;
 let sharedMission = { missionPhase: 'available', enemiesRemaining: 0 };
-const questIds = ['contracts', 'witness', 'patrol', 'chase'];
+const questIds = ['contracts', 'witness', 'patrol', 'chase', 'disguise', 'stadium', 'mansion'];
 function validQuests(payload) {
   if (!payload || !Array.isArray(payload.quests) || payload.quests.length > questIds.length) return null;
   const ids = new Set(questIds);
-  const quests = payload.quests.filter((quest) => quest && ids.has(quest.id) && ['available', 'active', 'complete'].includes(quest.status) && Number.isInteger(quest.progress) && quest.progress >= 0 && quest.progress <= 3).map(({ id, status, progress }) => ({ id, status, progress }));
+  const quests = payload.quests.filter((quest) => quest && ids.has(quest.id) && ['available', 'active', 'complete'].includes(quest.status) && Number.isInteger(quest.progress) && quest.progress >= 0 && quest.progress <= 5).map(({ id, status, progress }) => ({ id, status, progress }));
   if (quests.length !== questIds.length) return null;
   return { quests, trackedQuestId: ids.has(payload.trackedQuestId) ? payload.trackedQuestId : null };
 }
@@ -49,7 +49,7 @@ function safeName(value) { return String(value ?? 'Investigador').replace(/[<>\u
 function safeRole(value) { return ['police', 'civilian', 'criminal'].includes(value) ? value : 'civilian'; }
 function safePose(value) {
   if (!value || ![value.x, value.z, value.yaw].every((n) => typeof n === 'number' && Number.isFinite(n))) return null;
-  return { x: Math.max(-120, Math.min(120, value.x)), z: Math.max(-120, Math.min(120, value.z)), yaw: Math.atan2(Math.sin(value.yaw), Math.cos(value.yaw)), walking: Boolean(value.walking), sprinting: Boolean(value.sprinting), driving: Boolean(value.driving), updatedAt: Date.now() };
+  return { x: Math.max(-240, Math.min(240, value.x)), z: Math.max(-130, Math.min(130, value.z)), yaw: Math.atan2(Math.sin(value.yaw), Math.cos(value.yaw)), walking: Boolean(value.walking), sprinting: Boolean(value.sprinting), driving: Boolean(value.driving), updatedAt: Date.now() };
 }
 
 io.on('connection', (socket) => {
@@ -91,6 +91,15 @@ io.on('connection', (socket) => {
     socket.data.lastMove = now;
     Object.assign(player, pose);
     socket.to(roomId).volatile.emit('player:move', player);
+  });
+
+  socket.on('chat:send', (payload = {}) => {
+    const now = Date.now();
+    if (now - (socket.data.lastChat ?? 0) < 600) return;
+    const text = typeof payload.text === 'string' ? payload.text.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 140) : '';
+    if (!text) return;
+    socket.data.lastChat = now;
+    io.to(roomId).emit('chat:message', { id: socket.id, name: player.name, role: player.role, text, at: now });
   });
 
   socket.on('voice:join', () => {

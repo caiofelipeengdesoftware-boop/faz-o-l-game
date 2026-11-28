@@ -1,7 +1,7 @@
 import type { StateCreator } from 'zustand';
 import type { GameStore } from '../index';
 
-export type QuestId = 'contracts' | 'witness' | 'patrol' | 'chase';
+export type QuestId = 'contracts' | 'witness' | 'patrol' | 'chase' | 'disguise' | 'stadium' | 'mansion';
 export type QuestStatus = 'available' | 'active' | 'complete';
 export type QuestProgress = { id: QuestId; status: QuestStatus; progress: number };
 export const QUESTS: { id: QuestId; title: string; description: string; steps: string[]; reward: number; reputation: number; target: [number, number]; requires?: QuestId }[] = [
@@ -9,6 +9,9 @@ export const QUESTS: { id: QuestId; title: string; description: string; steps: s
   { id: 'witness', title: 'Uma testemunha ouviu', description: 'Converse com Marina, na esquina da avenida central com a rua norte.', steps: ['Localizar Marina', 'Registrar o depoimento'], reward: 350, reputation: 5, target: [-5.4, -27] },
   { id: 'patrol', title: 'Ronda preventiva', description: 'Passe por três pontos do bairro para verificar a área.', steps: ['Visitar ponto 1', 'Visitar ponto 2', 'Visitar ponto 3'], reward: 500, reputation: 4, target: [-45, -15] },
   { id: 'chase', title: 'Perseguição: o mensageiro', description: 'Tavinho entregava as caixas do esquema. Alcance-o a pé antes que ele escape e faça-o falar.', steps: ['Encontrar Tavinho', 'Alcançar o fugitivo', 'Interrogar Tavinho'], reward: 900, reputation: 10, target: [35.4, -33], requires: 'witness' },
+  { id: 'disguise', title: 'Disfarce', description: 'Para entrar onde um policial não entra, troque de roupa. Visite a loja Aurora Style e monte um visual civil.', steps: ['Ir à loja Aurora Style', 'Trocar de roupa no provador'], reward: 400, reputation: 4, target: [-49.55, -5.7] },
+  { id: 'stadium', title: 'Jogo marcado', description: 'O esquema usa o estádio para lavar dinheiro nas bilheterias. Encontre o cambista e pegue o envelope.', steps: ['Ir ao Estádio Aurora', 'Falar com o cambista', 'Levar o envelope ao Sargento Duarte'], reward: 1100, reputation: 10, target: [108, 0], requires: 'chase' },
+  { id: 'mansion', title: 'Mansão Brandão', description: 'Com um disfarce civil, entre na mansão do secretário, ache o cofre e fotografe os recibos.', steps: ['Chegar ao portão da mansão', 'Achar o cofre no escritório', 'Fotografar os recibos', 'Sair da propriedade'], reward: 2500, reputation: 18, target: [-122, 0], requires: 'stadium' },
 ];
 const INITIAL: QuestProgress[] = QUESTS.map(({ id }) => ({ id, status: 'available', progress: 0 }));
 
@@ -42,8 +45,9 @@ export const createQuestSlice: StateCreator<GameStore, [], [], QuestSlice> = (se
     set((state) => ({
       quests: state.quests.map((quest) => quest.id === id ? { ...quest, progress: nextProgress, status: complete ? 'complete' : 'active' } : quest),
       trackedQuestId: complete && state.trackedQuestId === id ? state.quests.find((quest) => quest.id !== id && quest.status === 'active')?.id ?? null : state.trackedQuestId,
-      ...(complete ? { legalAssets: state.legalAssets + config.reward, reputation: Math.min(100, state.reputation + config.reputation) } : {}),
+      ...(complete ? { legalAssets: state.legalAssets + config.reward, wallet: state.wallet + config.reward, reputation: Math.min(100, state.reputation + config.reputation) } : {}),
     }));
+    if (complete) get().showNotice(`Missão concluída: ${config.title} · +R$ ${config.reward.toLocaleString('pt-BR')}`);
   },
   setQuestProgress: (id, progress) => set((state) => ({ quests: state.quests.map((quest) => quest.id === id && quest.status === 'active' ? { ...quest, progress: Math.max(0, Math.min(QUESTS.find((item) => item.id === id)?.steps.length ?? 0, progress)) } : quest) })),
   restoreQuestState: (quests, tracked) => set({ quests: INITIAL.map((base) => quests.find((saved) => saved.id === base.id) ?? { ...base }), trackedQuestId: tracked }),

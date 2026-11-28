@@ -26,9 +26,11 @@ export const CAST: CastMember[] = [
     look: { skin: '#d3a182', top: '#17263d', bottom: '#111a29', outfit: 'uniform', hair: 'police-cap', badge: true, glasses: true, width: 1.14 } },
   { id: 'brandao', name: 'Otávio Brandão', role: 'Secretário de Obras', accent: '#c7a14b', bio: 'Dono de metade dos contratos da cidade e de muitos favores. Sempre acompanhado, nunca pessoalmente envolvido.', position: [54.6, 24], facing: Math.PI / 2,
     look: { skin: '#d3a182', top: '#2a2d33', bottom: '#202328', outfit: 'suit', tie: '#c7a14b', hair: 'short', hairColor: '#a3a3a3', glasses: true, scale: 1.02 } },
-  { id: 'guarda1', name: 'Segurança', role: 'Capanga do secretário', accent: '#8a8a8a', bio: 'Contratado para parecer discreto. Não consegue.', position: [54.6, 28], facing: Math.PI / 2,
+  { id: 'cambista', name: 'Cambista', role: 'Vende ingressos e segredos', accent: '#d98f4a', bio: 'Revende ingressos na porta do estádio e entrega envelopes para quem paga. Nervoso com policiais.', position: [104, 3.6], facing: 0,
+    look: { skin: '#b97a55', top: '#3b6b8c', bottom: '#2a2f36', hair: 'cap', hairColor: '#e2873a', shortSleeves: true, glasses: true, scale: 0.98 } },
+  { id: 'guarda1', name: 'Segurança', role: 'Capanga do secretário', accent: '#8a8a8a', bio: 'Contratado para parecer discreto. Não consegue.', position: [-120.8, 4.4], facing: Math.PI / 2,
     look: { skin: '#a77a5b', top: '#14171a', bottom: '#14171a', outfit: 'suit', hair: 'none', glasses: true, scale: 1.08, width: 1.12 } },
-  { id: 'guarda2', name: 'Segurança', role: 'Capanga do secretário', accent: '#8a8a8a', bio: 'O outro segurança. Tão discreto quanto o primeiro.', position: [54.6, 20], facing: Math.PI / 2,
+  { id: 'guarda2', name: 'Segurança', role: 'Capanga do secretário', accent: '#8a8a8a', bio: 'O outro segurança. Tão discreto quanto o primeiro.', position: [-120.8, -4.4], facing: Math.PI / 2,
     look: { skin: '#e0b08a', top: '#14171a', bottom: '#14171a', outfit: 'suit', hair: 'short', hairColor: '#171717', scale: 1.06, width: 1.1 } },
 ];
 export const lookOf = (id: string) => CAST.find((member) => member.id === id)!.look;

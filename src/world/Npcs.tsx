@@ -7,6 +7,7 @@ import { setHint } from '../systems/hints';
 import { useGameStore } from '../state';
 import { CAST, npcDialogue, type CastMember } from '../data/story';
 import { Person } from './Person';
+import { talkHandlers } from '../systems/questTalk';
 
 function Npc({ member, onBribe }: { member: CastMember; onBribe: () => void }) {
   const root = useRef<Group>(null); const [near, setNear] = useState(false); const nearRef = useRef(false);
@@ -31,6 +32,7 @@ function Npc({ member, onBribe }: { member: CastMember; onBribe: () => void }) {
       return;
     }
     if (member.id === 'brandao' && store.quests.find((quest) => quest.id === 'chase')?.status === 'complete') { const line = npcDialogue('brandao', store); store.showCharacterDialogue(line.speaker, line.text); window.setTimeout(onBribe, 50); return; }
+    if (talkHandlers.get(member.id)?.()) return;
     const line = npcDialogue(member.id, store); store.showCharacterDialogue(line.speaker, line.text);
   });
   return <group ref={root} position={[x, 0, z]} rotation-y={member.facing ?? 0}>

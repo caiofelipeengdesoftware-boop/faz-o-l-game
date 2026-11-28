@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
+import { ChatPanel } from './ChatPanel';
 import { create } from 'zustand';
 import { io, type Socket } from 'socket.io-client';
 import { MathUtils, type Group } from 'three';
@@ -11,11 +12,16 @@ import { newMotion, Person, type PersonLook } from '../world/Person';
 
 export type GameRole = 'police' | 'civilian' | 'criminal';
 export type RemotePlayer = { id: string; name: string; role: GameRole; x: number; z: number; yaw: number; walking: boolean; sprinting: boolean; driving: boolean };
-type MultiplayerState = { connected: boolean; players: RemotePlayer[]; speaking: string[]; setConnected: (value: boolean) => void; setPlayers: (players: RemotePlayer[]) => void; setSpeaking: (id: string, value: boolean) => void };
+export type ChatMessage = { id: string; name: string; role: GameRole; text: string; at: number };
+type MultiplayerState = { messages: ChatMessage[]; voiceOn: boolean; selfId: string | null; addMessage: (message: ChatMessage) => void; setVoiceOn: (value: boolean) => void; setSelfId: (id: string | null) => void; connected: boolean; players: RemotePlayer[]; speaking: string[]; setConnected: (value: boolean) => void; setPlayers: (players: RemotePlayer[]) => void; setSpeaking: (id: string, value: boolean) => void };
 export const useMultiplayerStore = create<MultiplayerState>((set) => ({
+  messages: [], voiceOn: false, selfId: null, addMessage: (message) => set((state) => ({ messages: [...state.messages.slice(-39), message] })), setVoiceOn: (voiceOn) => set({ voiceOn }), setSelfId: (selfId) => set({ selfId }),
   connected: false, players: [], speaking: [], setConnected: (connected) => set({ connected }), setPlayers: (players) => set({ players }),
   setSpeaking: (id, value) => set((state) => ({ speaking: value ? Array.from(new Set([...state.speaking, id])) : state.speaking.filter((item) => item !== id) })),
 }));
+
+let activeSocket: Socket | null = null;
+export function sendChat(text: string) { activeSocket?.emit('chat:send', { text }); }
 
 type PeerAudio = { connection: RTCPeerConnection; panner: PannerNode | null; pendingIce: RTCIceCandidateInit[] };
 
@@ -67,7 +73,8 @@ export function MultiplayerOverlay({ active }: { active: boolean }) {
       }
     };
 
-    socket.on('connect', () => { useMultiplayerStore.getState().setConnected(true); socket.emit('room:join', { name, role }); });
+    socket.on('chat:message', (message: ChatMessage) => useMultiplayerStore.getState().addMessage(message));
+    socket.on('connect', () => { activeSocket = socket; useMultiplayerStore.getState().setSelfId(socket.id ?? null); useMultiplayerStore.getState().setConnected(true); socket.emit('room:join', { name, role }); });
     socket.on('disconnect', () => { useMultiplayerStore.getState().setConnected(false); useMultiplayerStore.getState().setPlayers([]); });
     socket.on('connect_error', () => useMultiplayerStore.getState().setConnected(false));
     socket.on('room:players', (list: RemotePlayer[]) => useMultiplayerStore.getState().setPlayers(list));
@@ -154,7 +161,7 @@ export function MultiplayerOverlay({ active }: { active: boolean }) {
       for (const id of peers.current.keys()) { peers.current.get(id)?.connection.close(); peers.current.delete(id); }
       microphone.current?.getTracks().forEach((track) => track.stop()); microphone.current = null;
       micAnalyser.current?.disconnect(); micAnalyser.current = null; micData.current = null;
-      await audioContext.current?.close(); audioContext.current = null; setVoiceOn(false); return;
+      await audioContext.current?.close(); audioContext.current = null; setVoiceOn(false); useMultiplayerStore.getState().setVoiceOn(false); return;
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
@@ -163,12 +170,14 @@ export function MultiplayerOverlay({ active }: { active: boolean }) {
       const source = audioContext.current.createMediaStreamSource(stream);
       const analyser = audioContext.current.createAnalyser(); analyser.fftSize = 256; source.connect(analyser);
       micAnalyser.current = analyser; micData.current = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount));
-      socketRef.current?.emit('voice:join'); setVoiceOn(true);
+      socketRef.current?.emit('voice:join'); setVoiceOn(true); useMultiplayerStore.getState().setVoiceOn(true);
     } catch (error) { setVoiceError(error instanceof Error ? error.message : 'Microfone indisponível'); }
   };
 
+  const toggleRef = useRef(toggleVoice); toggleRef.current = toggleVoice;
+  useEffect(() => { const handler = () => { void toggleRef.current(); }; window.addEventListener('faz:voice-toggle', handler); return () => window.removeEventListener('faz:voice-toggle', handler); }, []);
   if (!active) return null;
-  return <div className="multiplayer-badge"><span className={connected ? 'network-dot online' : 'network-dot'} />{connected ? `${remotePlayers.length + 1} NO DISTRITO` : 'ONLINE INDISPONÍVEL'}<button title={voiceError || (voiceOn ? 'Desativar chat de voz' : 'Ativar microfone')} onClick={() => void toggleVoice()} className={voiceOn ? 'voice-on' : ''}>🎙 {voiceOn ? 'VOZ ATIVA' : 'VOZ'}</button></div>;
+  return <><ChatPanel connected={connected} /><div className="multiplayer-badge"><span className={connected ? 'network-dot online' : 'network-dot'} />{connected ? `${remotePlayers.length + 1} NO DISTRITO` : 'ONLINE INDISPONÍVEL'}<button title={voiceError || (voiceOn ? 'Desativar chat de voz' : 'Ativar microfone')} onClick={() => void toggleVoice()} className={voiceOn ? 'voice-on' : ''}>🎙 {voiceOn ? 'VOZ ATIVA' : 'VOZ'}</button></div></>;
 }
 
 const TOPS = ['#5892ad', '#b96545', '#6b8180', '#c4a66f', '#6e627c', '#a38674', '#3f7a8c'];

@@ -4,6 +4,9 @@ import { CanvasTexture, Color, Object3D, RepeatWrapping, SRGBColorSpace, type In
 import { useGameStore } from '../state';
 import { OptionalGlb } from './OptionalGlb';
 import { Terrain } from './Terrain';
+import { ShopFront } from './Shop';
+import { grassTexture } from './textures';
+import { Palms, Lamps, FlowerBeds } from './Vegetation';
 
 const STREETS = [-60, -30, 0, 30, 60];
 const COLORS = ['#c6a17c', '#c7c3ae', '#99aaa0', '#b98d79', '#d0bc93', '#8fa3a4', '#bfad9a', '#c48b59'];
@@ -172,9 +175,23 @@ function RoadNetwork() {
   </group>;
 }
 
+function Districts() {
+  const wet = useGameStore((state) => state.weather === 'rain');
+  const lawn = useMemo(() => grassTexture('#547d3f', 34, 22), []);
+  const asphalt = wet ? '#3c4244' : '#55595a';
+  return <group>
+    {[-1, 1].map((side) => <group key={side}>
+      <mesh receiveShadow rotation-x={-Math.PI / 2} position={[side * 152.5, 0.012, 0]}><planeGeometry args={[125, 184]} /><meshStandardMaterial map={lawn} roughness={1} /></mesh>
+      <mesh receiveShadow position={[side * 89, 0.015, 0]}><boxGeometry args={[46, 0.08, 12]} /><meshStandardMaterial color={asphalt} roughness={wet ? 0.28 : 0.97} metalness={wet ? 0.35 : 0} /></mesh>
+      {[-1, 1].map((edge) => <mesh key={edge} receiveShadow position={[side * 89, 0.13, edge * 7.8]}><boxGeometry args={[46, 0.24, 3.4]} /><meshStandardMaterial color="#a9a696" roughness={0.95} /></mesh>)}
+      {[-1, 0, 1].map((k) => <mesh key={k} position={[side * (82 + k * 8), 0.067, 0]}><boxGeometry args={[4.4, 0.025, 0.16]} /><meshStandardMaterial color="#dfd5ae" /></mesh>)}
+    </group>)}
+  </group>;
+}
+
 export function City() {
   const buildings = useMemo(() => {
-    const sites: { x: number; z: number; width: number; depth: number; height: number; color: string }[] = [];
+    const sites: { x: number; z: number; width: number; depth: number; height: number; color: string; shop?: boolean }[] = [];
     for (const blockX of [-45, -15, 15, 45]) for (const blockZ of [-45, -15, 15, 45]) {
       if ((blockX === -15 && blockZ === 15) || (blockX === 45 && blockZ === -45)) continue;
       for (const row of [-1, 1]) for (const column of [-1, 1]) {
@@ -187,7 +204,7 @@ export function City() {
           x: blockX + column * 4.55 + ((seed % 3) - 1) * 0.28,
           z: blockZ + row * 4.55 + (((seed >> 1) % 3) - 1) * 0.28,
           width, depth, height: tower ? 13 + (seed % 5) * 3.4 : floors === 2 ? 6.4 + (seed % 5) * 0.22 : 3.7 + (seed % 6) * 0.16,
-          color: COLORS[seed % COLORS.length],
+          color: COLORS[seed % COLORS.length], shop: blockX === -45 && blockZ === -15 && row === 1 && column === -1,
         });
       }
     }
@@ -202,7 +219,9 @@ export function City() {
   return <group>
     <Terrain />
     <RoadNetwork />
-    {buildings.map((building, i) => <Building key={i} {...building} seed={i * 11 + 5} />)}
+    {buildings.map(({ shop, ...building }, i) => <group key={i}><Building {...building} seed={i * 11 + 5} />{shop && <ShopFront x={building.x} z={building.z} width={building.width} depth={building.depth} height={building.height} />}</group>)}
+    <Districts />
+    <Palms /><Lamps /><FlowerBeds />
     <TreeInstances trees={trees} />
     {lamps.map(([x, z], i) => <StreetLamp key={i} x={x} z={z} illuminate={i % 6 === 0} />)}
   </group>;

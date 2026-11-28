@@ -27,7 +27,7 @@ export function Phone() {
   const timeOfDay = useGameStore((state) => state.timeOfDay);
   const weather = useGameStore((state) => state.weather);
   const [app, setApp] = useState<App>('home');
-  useEffect(() => { if (!open) return; setApp('home'); const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); close(); } }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey); }, [open, close]);
+  useEffect(() => { if (!open) return; setApp('home'); const onBack = () => { setApp((current) => { if (current === 'home') { close(); return current; } return 'home'; }); }; window.addEventListener('pad:back', onBack); const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); close(); } }; window.addEventListener('keydown', onKey); return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('pad:back', onBack); }; }, [open, close]);
   if (!open) return null;
   const status = (id: string) => quests.find((quest) => quest.id === id)?.status ?? 'available';
   const progress = (id: string) => quests.find((quest) => quest.id === id)?.progress ?? 0;
@@ -44,7 +44,7 @@ export function Phone() {
     { id: 'quests', icon: '☷', label: 'Missões', badge: quests.filter((quest) => quest.status === 'active').length }, { id: 'messages', icon: '✉', label: 'Mensagens', badge: messages.length },
     { id: 'contacts', icon: '☺', label: 'Contatos' }, { id: 'evidence', icon: '▣', label: 'Provas', badge: evidence.length },
   ];
-  return <div className="phone-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
+  return <div className="phone-overlay" data-pad-scope role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
     <section className="phone" role="dialog" aria-label="Celular">
       <div className="phone-notch" />
       <header className="phone-status"><b>{clock}</b><span>{weather === 'rain' ? '🌧 18°' : timeOfDay === 'night' ? '☾ 21°' : '☀ 27°'}</span></header>

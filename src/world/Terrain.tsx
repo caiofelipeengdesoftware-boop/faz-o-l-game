@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { FLAT_X, FLAT_Z } from '../data/world';
 import { BufferAttribute, Color, MathUtils, Object3D, PlaneGeometry, type InstancedMesh } from 'three';
 
 const hash = (x: number, y: number) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
@@ -16,8 +17,8 @@ function fbm(x: number, z: number) {
 
 /** Altura do relevo ao redor da cidade. A cidade (|x|,|z| < 92) fica plana; fora dela o terreno sobe em morros e serras. */
 export function terrainHeight(x: number, z: number) {
-  const edge = Math.max(Math.abs(x), Math.abs(z));
-  const t = MathUtils.clamp((edge - 92) / 175, 0, 1);
+  const d = Math.hypot(Math.max(Math.abs(x) - FLAT_X, 0), Math.max(Math.abs(z) - FLAT_Z, 0));
+  const t = MathUtils.clamp(d / 175, 0, 1);
   const rise = t * t * (3 - 2 * t);
   const ridge = 1 - Math.abs(fbm(x * 0.006 + 9, z * 0.006 + 3) * 2 - 1);
   return -0.12 + rise * (12 + fbm(x * 0.013, z * 0.013) * 48 + ridge * 30);
@@ -27,18 +28,17 @@ const GRASS = new Color('#5d7a43'); const GRASS_DARK = new Color('#44603a'); con
 
 export function Terrain() {
   const geometry = useMemo(() => {
-    const size = 800; const segments = 180;
-    const geo = new PlaneGeometry(size, size, segments, segments);
+    const geo = new PlaneGeometry(1100, 760, 220, 152);
     geo.rotateX(-Math.PI / 2);
     const pos = geo.getAttribute('position') as BufferAttribute;
     const colors = new Float32Array(pos.count * 3);
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i); const z = pos.getZ(i); const h = terrainHeight(x, z);
       pos.setY(i, h);
-      const edge = Math.max(Math.abs(x), Math.abs(z));
+      const edge = 106 - Math.hypot(Math.max(Math.abs(x) - FLAT_X, 0), Math.max(Math.abs(z) - FLAT_Z, 0));
       const patch = fbm(x * 0.05 + 40, z * 0.05 - 17);
       tmp.copy(GRASS).lerp(GRASS_DARK, patch);
-      if (edge < 106) tmp.lerp(DIRT, MathUtils.clamp((106 - edge) / 14, 0, 1) * 0.85);
+      if (edge > 92) tmp.lerp(DIRT, MathUtils.clamp((edge - 92) / 14, 0, 1) * 0.85);
       const rock = MathUtils.clamp((h - 34) / 26, 0, 1) * (0.4 + patch * 0.6);
       tmp.lerp(ROCK, rock);
       colors.set([tmp.r, tmp.g, tmp.b], i * 3);
@@ -52,10 +52,9 @@ export function Terrain() {
     const list: { x: number; y: number; z: number; s: number; tone: number }[] = [];
     let guard = 0;
     while (list.length < 420 && guard++ < 5000) {
-      const x = (random() - 0.5) * 520; const z = (random() - 0.5) * 520;
-      const edge = Math.max(Math.abs(x), Math.abs(z));
+      const x = (random() - 0.5) * 900; const z = (random() - 0.5) * 640;
       const h = terrainHeight(x, z);
-      if (edge < 98 || h > 46 || fbm(x * 0.03, z * 0.03) < 0.42) continue;
+      if ((Math.abs(x) < FLAT_X + 6 && Math.abs(z) < FLAT_Z + 6) || h > 46 || fbm(x * 0.03, z * 0.03) < 0.42) continue;
       list.push({ x, y: h, z, s: 0.8 + random() * 1.1, tone: random() });
     }
     return list;

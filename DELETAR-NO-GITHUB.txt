@@ -1,0 +1,2 @@
+Apague este arquivo no GitHub depois de subir a atualizacao:
+src/world/PoliceBody.tsx

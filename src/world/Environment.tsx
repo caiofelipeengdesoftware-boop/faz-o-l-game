@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { BackSide, BufferAttribute, BufferGeometry, Color, MathUtils, type Mesh, type MeshBasicMaterial, type Points, type PointsMaterial, type ShaderMaterial, type AmbientLight as AmbientLightType, type DirectionalLight as DirectionalLightType, type HemisphereLight as HemisphereLightType, type Group } from 'three';
 import { useGameStore } from '../state';
@@ -26,6 +26,7 @@ export function Atmosphere() {
     for (let i = 0; i < count; i++) { const theta = random() * Math.PI * 2; const y = 0.08 + random() * 0.92; const r = Math.sqrt(1 - y * y); positions.set([Math.cos(theta) * r * 440, y * 440, Math.sin(theta) * r * 440], i * 3); }
     const geo = new BufferGeometry(); geo.setAttribute('position', new BufferAttribute(positions, 3)); return geo;
   }, []);
+  useEffect(() => { const target = sun.current?.target; if (!target) return; scene.add(target); return () => { scene.remove(target); }; }, [scene]);
   const uniforms = useMemo(() => ({ top: { value: new Color('#4f8fd0') }, bottom: { value: new Color('#cfe1ea') } }), []);
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.1); const f = factors.current;
@@ -37,7 +38,9 @@ export function Atmosphere() {
     uniforms.top.value.copy(zenith.current); uniforms.bottom.value.copy(horizon.current);
     const dirY = MathUtils.lerp(52, 30, night); const dirX = MathUtils.lerp(28, -24, night);
     if (sun.current) {
-      sun.current.position.set(dirX, dirY * (1 - golden * 0.45), 17);
+      const [spx, spz] = useGameStore.getState().playerPosition;
+      sun.current.target.position.set(spx, 0, spz); sun.current.target.updateMatrixWorld();
+      sun.current.position.set(spx + dirX, dirY * (1 - golden * 0.45), spz + 17);
       sun.current.intensity = MathUtils.lerp(2.5, 0.34, night) * (1 - rain * 0.55);
       sun.current.color.copy(C.sunDay).lerp(C.sunNight, night).lerp(C.sunDusk, golden);
     }
@@ -54,7 +57,7 @@ export function Atmosphere() {
   return <>
     <hemisphereLight ref={hemi} args={['#c7d5dc', '#625849', 1.15]} />
     <ambientLight ref={ambient} intensity={0.48} />
-    <directionalLight ref={sun} position={[28, 52, 17]} intensity={2.5} castShadow shadow-mapSize={[1024, 1024]} shadow-camera-left={-90} shadow-camera-right={90} shadow-camera-top={90} shadow-camera-bottom={-90} />
+    <directionalLight ref={sun} position={[28, 52, 17]} intensity={2.5} castShadow shadow-mapSize={[1024, 1024]} shadow-camera-left={-70} shadow-camera-right={70} shadow-camera-top={70} shadow-camera-bottom={-70} shadow-camera-far={260} />
     <group ref={dome} renderOrder={-10}>
       <mesh renderOrder={-10}><sphereGeometry args={[470, 32, 18]} /><shaderMaterial ref={skyMaterial} side={BackSide} depthWrite={false} fog={false} uniforms={uniforms} vertexShader={skyVertex} fragmentShader={skyFragment} /></mesh>
       <points ref={stars} geometry={starGeometry} renderOrder={-9}><pointsMaterial color="#ffffff" size={2.1} sizeAttenuation={false} transparent opacity={0} depthWrite={false} fog={false} /></points>

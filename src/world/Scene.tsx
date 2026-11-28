@@ -17,6 +17,11 @@ import { Animals } from './Animals';
 import { RemotePlayers } from '../multiplayer/Multiplayer';
 import { Effects } from './Effects';
 import { StoryNpcs } from './Npcs';
+import { Stadium } from './Stadium';
+import { Mansion } from './Mansion';
+import { ShopDoor, ShopInterior } from './Shop';
+import { QuestWorld } from './QuestWorld';
+import { StatsTracker } from './StatsTracker';
 import { ChaseTarget } from './Chase';
 
 export function Scene({ onInteract, enabled }: { onInteract: () => void; enabled: boolean }) {
@@ -28,9 +33,9 @@ export function Scene({ onInteract, enabled }: { onInteract: () => void; enabled
     <Atmosphere /><Rain /><ReflectionEnvironment /><ClubSoundscape />
     <Physics gravity={[0, -9.81, 0]} timeStep="vary" paused={!enabled || showQuestBoard}>
       <InputManager enabled={enabled && !showQuestBoard} />
-      <RigidBody type="fixed" colliders="cuboid" position={[0, -0.6, 0]}><mesh receiveShadow><boxGeometry args={[180, 1.2, 180]} /><meshStandardMaterial color="#393b38" roughness={0.98} /></mesh></RigidBody>
-      {isInside ? (interiorKind === 'club' ? <ClubInterior /> : <InteriorRoom />) : <>
-        <City /><HouseDoor /><ClubExterior /><PoliceStation onInteract={onInteract} />
+      <RigidBody type="fixed" colliders="cuboid" position={[0, -0.6, 0]}><mesh receiveShadow><boxGeometry args={[450, 1.2, 190]} /><meshStandardMaterial color="#393b38" roughness={0.98} /></mesh></RigidBody>
+      {isInside ? (interiorKind === 'club' ? <ClubInterior /> : interiorKind === 'shop' ? <ShopInterior /> : <InteriorRoom />) : <>
+        <City /><Stadium /><Mansion /><ShopDoor /><QuestWorld /><StatsTracker /><HouseDoor /><ClubExterior /><PoliceStation onInteract={onInteract} />
         <Vehicle /><Traffic />
         <ParkedCar position={[-69, 0.72, -8]} color="#667e84" />
         <ParkedCar position={[69, 0.72, 10]} color="#a84d39" />

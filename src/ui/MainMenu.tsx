@@ -11,7 +11,7 @@ export const STORY = [
   { title: 'Seu primeiro plantão', text: 'Você é o novo investigador da equipe. A primeira pista leva a um depósito no distrito industrial. Lá dentro, alguém já sabe que você está a caminho.', voice: 'Seu primeiro plantão. Você é o novo investigador da equipe. A primeira pista leva a um depósito no distrito industrial.' },
 ];
 
-function AdvancedSettings() {
+export function AdvancedSettings() {
   const [controller, setController] = useState(getControllerSettings);
   const [mixer, setMixer] = useState(getAudioMix);
   const changeMixer = (key: 'master' | 'music' | 'effects', value: number) => {

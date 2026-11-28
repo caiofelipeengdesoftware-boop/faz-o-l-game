@@ -18,3 +18,9 @@ O jeito mais simples é hospedar **tudo no Render** (gratuito), no mesmo endere�
 ## Testar
 Abra o jogo em duas abas (ou dois aparelhos), escolha **Sessão online → Entrar na cidade** nas duas. Cada uma deve ver o outro jogador.
 Teste local: `npm run build` e depois `npm start`; abra `http://localhost:3001`.
+
+## Voz e chat
+- **Voz:** tecla V (ou direcional → no controle) liga o microfone. O navegador pede permissão uma vez. Só funciona em endereço https (o Render e o Netlify já são).
+- **Texto:** tecla T. No controle, o direcional ↓ abre frases rápidas (A envia).
+- **Achar um amigo:** abra Pausa → Online e toque em Rastrear (marca no mapa e no minimapa) ou Ir até (teleporta até ele). O minimapa mostra amigos mesmo longe, com uma seta na borda.
+- As teclas e os botões de voz, chat e celular podem ser trocados em Pausa → Configurações.

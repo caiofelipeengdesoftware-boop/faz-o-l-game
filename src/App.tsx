@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Color, Object3D, PCFSoftShadowMap, type InstancedMesh } from 'three';
 import { setAudioEnabled, unlockAudio } from './systems/audio';
@@ -13,6 +13,10 @@ import { useGameStore } from './state';
 import type { BribeOffer } from './systems/bribery';
 import type { QuestId } from './state/slices/questSlice';
 import { AimReticle } from './ui/AimReticle';
+import { PauseMenu } from './ui/PauseMenu';
+import { Wardrobe } from './ui/Wardrobe';
+import { useHotkeys } from './systems/hotkeys';
+import { useGamepadUi } from './systems/gamepadUi';
 import { clearHints } from './systems/hints';
 import { getControllerSettings, type ControllerSettings } from './systems/controllerSettings';
 const GameScene = lazy(() => import('./world/Scene').then((module) => ({ default: module.Scene })));
@@ -137,6 +141,12 @@ export default function App() {
   const showQuestBoard = useGameStore((state) => state.showQuestBoard || state.showPhone);
   const characterDialogue = useGameStore((state) => state.characterDialogue);
   const pauseRequested = useGameStore((state) => state.pauseRequested);
+  const wardrobeOpen = useGameStore((state) => state.wardrobeOpen);
+  const chatBusy = useGameStore((state) => state.chatOpen || state.quickChatOpen);
+  const overlayOpen = showQuestBoard || wardrobeOpen || chatBusy;
+  const screenRef = useRef<Screen>(screen); screenRef.current = screen;
+  useHotkeys(useCallback(() => screenRef.current === 'game', []));
+  useGamepadUi();
   const inGame = screen === 'game';
   const sceneLive = gameStarted && (screen === 'game' || screen === 'pause' || (screen === 'settings' && settingsReturn.current === 'pause'));
 
@@ -202,17 +212,19 @@ export default function App() {
 
   return <main className="game-shell">
     <Canvas shadows camera={{ position: [0, 5, 12], fov: 58, near: 0.1, far: 520 }} dpr={[1, 1.2]} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ gl }) => { gl.shadowMap.enabled = true; gl.shadowMap.type = PCFSoftShadowMap; }}>
-      {sceneLive ? <Suspense fallback={<LoadingBackdrop />}><GameScene enabled={inGame && !dialogue && !donating && !characterDialogue && !showQuestBoard} onInteract={() => { setDialogue(true); document.exitPointerLock?.(); }} /></Suspense> : <TitleBackdrop />}
+      {sceneLive ? <Suspense fallback={<LoadingBackdrop />}><GameScene enabled={inGame && !dialogue && !donating && !characterDialogue && !overlayOpen} onInteract={() => { setDialogue(true); document.exitPointerLock?.(); }} /></Suspense> : <TitleBackdrop />}
       <GraphicsQuality />
     </Canvas>
     {inGame && <HUD onDonate={() => { setDonating(true); document.exitPointerLock?.(); }} onMissionStart={() => acceptQuest('contracts')} onAcceptQuest={acceptQuest}
       onPause={() => { setScreen('pause'); document.exitPointerLock?.(); }} onToggleCamera={() => useGameStore.getState().toggleCamera()} />}
-    {inGame && !dialogue && !donating && !characterDialogue && !showQuestBoard && <MobileControls />}
-    {screen !== 'game' && <MainMenu page={screen} storyIndex={storyIndex} hasSave={hasSave} soundEnabled={audioEnabled} cameraMode={cameraMode} controllerName={controllerName} timeOfDay={timeOfDay} weather={weather}
+    {inGame && !dialogue && !donating && !characterDialogue && !overlayOpen && <MobileControls />}
+    {screen === 'pause' && gameStarted && <PauseMenu soundEnabled={audioEnabled} cameraMode={cameraMode} timeOfDay={timeOfDay} weather={weather} controllerName={controllerName} onResume={resume} onSave={save} onTitle={returnToTitle} onAcceptQuest={acceptQuest} onToggleSound={toggleAudio} onToggleCamera={() => useGameStore.getState().toggleCamera()} onToggleTime={() => useGameStore.getState().toggleTimeOfDay()} onToggleWeather={() => useGameStore.getState().toggleWeather()} />}
+    {screen !== 'game' && screen !== 'pause' && <MainMenu page={screen} storyIndex={storyIndex} hasSave={hasSave} soundEnabled={audioEnabled} cameraMode={cameraMode} controllerName={controllerName} timeOfDay={timeOfDay} weather={weather}
       physicsStatus={physicsStatus} onRetryPhysics={retryPhysics} onNewGame={startNewGame} onStoryStart={startStory} onContinue={continueGame} onCredits={() => setScreen('credits')} onSettings={openSettings} onOnline={() => setScreen('online')} onBack={goBack} onCast={() => setScreen('cast')}
       onStoryNext={storyNext} onStorySkip={finishStory} onToggleSound={toggleAudio} onToggleCamera={() => useGameStore.getState().toggleCamera()} onToggleTime={() => useGameStore.getState().toggleTimeOfDay()} onToggleWeather={() => useGameStore.getState().toggleWeather()}
       onPauseResume={resume} onPauseSave={save} onReturnTitle={returnToTitle} />}
     {inGame && dialogue && <BribeDialogue offer={offer} onClose={() => { setDialogue(false); if (!donating && !characterDialogue) document.body.requestPointerLock?.(); }} />}
+    {inGame && wardrobeOpen && <Suspense fallback={null}><Wardrobe /></Suspense>}
     {inGame && characterDialogue && <CharacterDialogue onClose={closeCharacterDialogue} />}
     {inGame && donating && <DonationDialog onClose={() => { setDonating(false); if (!dialogue && !characterDialogue) document.body.requestPointerLock?.(); }} />}
     <Suspense fallback={null}>{(inGame || screen === 'pause') && <MultiplayerOverlay active />}</Suspense>

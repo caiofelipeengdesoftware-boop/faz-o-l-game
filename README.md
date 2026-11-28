@@ -84,3 +84,29 @@ Os personagens, veículos, animais, boate e edifícios desta demonstração usam
 
 ## Online
 Veja `ONLINE.md` para hospedar o servidor multiplayer (Render) e fazer o modo online funcionar.
+
+
+## Controles (podem ser trocados em Configurações)
+
+| Ação | Teclado | Controle |
+| --- | --- | --- |
+| Mover / correr | WASD / Shift | analógico esquerdo / A |
+| Mirar / atirar | botão direito / esquerdo | LT / RT |
+| Interagir (portas, pessoas, cofre) | E | Y |
+| Celular (missões, mensagens, provas) | P | direcional ← |
+| Chat de voz (liga/desliga o microfone) | V | direcional → |
+| Chat de texto / frases rápidas | T | direcional ↓ |
+| Mapa / Resumo | M / J | View / direcional ↑ |
+| Pausa (mapa, resumo, estatísticas, ajustes, jogo, online) | Esc | Menu |
+| Trocar de aba na pausa | Q / E | LB / RB |
+| Nos menus | mouse / setas | direcional + A (confirma) + B (volta) |
+
+No mapa da pausa: clique para marcar um destino, botão direito (ou X) remove, arraste para mover, roda do mouse (ou LT/RT) dá zoom, Y centraliza em você.
+
+## Novidades da versão final
+- Menu de pausa em abas, com mapa em relevo, resumo de missões, estatísticas, configurações, jogo e online (lista de amigos com rastreio e teleporte).
+- Controle (Xbox/PlayStation) em todos os menus, celular, voz, chat e provador.
+- Loja Aurora Style (entre pela porta, use o provador), carteira e compras.
+- Estádio Aurora (leste) e mansão do secretário (oeste), ruas com palmeiras, postes, faixas de pedestre e vegetação.
+- Missões: Disfarce, Jogo marcado (cambista e emboscada) e Mansão Brandão (infiltração, cofre e fotos), além da perseguição ao Tavinho.
+- Online: chat de texto (T), voz (V), frases rápidas no controle, amigos no minimapa e no mapa.

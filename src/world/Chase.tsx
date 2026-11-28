@@ -36,7 +36,7 @@ export function ChaseTarget() {
   const catchSuspect = () => {
     const store = useGameStore.getState();
     if (store.quests.find((item) => item.id === 'chase')?.progress !== 1) return;
-    motion.current.speed = 0; store.advanceQuest('chase');
+    motion.current.speed = 0; store.addStat('arrests'); store.advanceQuest('chase');
     store.showNotice('Tavinho foi detido. Converse com ele.');
   };
 

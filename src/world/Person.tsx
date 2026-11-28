@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { useMemo, useRef, useState, type MutableRefObject, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { DoubleSide, LatheGeometry, MathUtils, Vector2, Vector3, type Group } from 'three';
 import { gameInput } from '../systems/gameInput';
@@ -54,11 +54,13 @@ function Hand({ side, color, near }: { side: -1 | 1; color: string; near: boolea
 }
 
 /** Figura humana procedural com anatomia articulada: pedestres, policiais, bandidos e personagens da história. Pés em y = 0. */
-export function Person({ look, motion }: { look: PersonLook; motion?: MutableRefObject<Motion> }) {
+type Aim = MutableRefObject<boolean>; type LookRef = MutableRefObject<{ yaw: number; pitch: number }>;
+export function Person({ look, motion, aim, muzzleRef, lookRef, punch }: { look: PersonLook; motion?: MutableRefObject<Motion>; aim?: Aim; muzzleRef?: RefObject<Group | null>; lookRef?: LookRef; punch?: MutableRefObject<number> }) {
   const { skin, top, bottom = '#2d333a', shoes = '#151719', hair = 'short', hairColor = '#2b211c', outfit = 'casual', shortSleeves, glasses, badge, tie, mask, backpack, armed, scale = 1, width = 1, build = 'male' } = look;
   const root = useRef<Group>(null); const bodyRef = useRef<Group>(null); const headRef = useRef<Group>(null);
   const hipL = useRef<Group>(null); const hipR = useRef<Group>(null); const kneeL = useRef<Group>(null); const kneeR = useRef<Group>(null);
   const shoulderL = useRef<Group>(null); const shoulderR = useRef<Group>(null); const elbowL = useRef<Group>(null); const elbowR = useRef<Group>(null);
+  const pistol = useRef<Group>(null);
   const [near, setNear] = useState(true); const lodTimer = useRef(Math.random()); const worldPos = useRef(new Vector3());
   const camera = useThree((state) => state.camera);
   const female = build === 'female'; const profile = female ? FEMALE_PROFILE : MALE_PROFILE;
@@ -88,7 +90,10 @@ export function Person({ look, motion }: { look: PersonLook; motion?: MutableRef
     const stride = (offset: number) => Math.sin(phase + offset) * amp;
     const flex = (offset: number) => (move ? Math.max(0, Math.cos(phase + offset)) * amp * 1.7 + amp * 0.1 : 0.04);
     set(hipL, -stride(0)); set(hipR, -stride(Math.PI)); set(kneeL, flex(0)); set(kneeR, flex(Math.PI));
-    if (armed) { set(shoulderR, -1.32, -0.04); set(elbowR, -0.22); set(shoulderL, -1.18, 0.34); set(elbowL, -0.65); }
+    const armedNow = aim ? aim.current : Boolean(armed);
+    if (pistol.current) pistol.current.visible = armedNow;
+    if (punch && punch.current > 0) { set(shoulderR, -1.55, -0.02); set(elbowR, -0.05); set(shoulderL, 0.5, 0.2); set(elbowL, -0.6); }
+    else if (armedNow) { set(shoulderR, -1.32, -0.04); set(elbowR, -0.22); set(shoulderL, -1.18, 0.34); set(elbowL, -0.65); }
     else {
       set(shoulderL, stride(Math.PI) * 1.05, 0.05); set(shoulderR, stride(0) * 1.05, -0.05);
       set(elbowL, -(0.12 + (move ? Math.max(0, -Math.sin(phase)) * amp * 1.2 : 0)), 0); set(elbowR, -(0.12 + (move ? Math.max(0, Math.sin(phase)) * amp * 1.2 : 0)), 0);
@@ -97,7 +102,8 @@ export function Person({ look, motion }: { look: PersonLook; motion?: MutableRef
       bodyRef.current.position.y = MathUtils.damp(bodyRef.current.position.y, move ? Math.abs(Math.cos(phase)) * 0.026 * Math.min(speed, 1.3) : Math.sin(state.clock.elapsedTime * 1.6) * 0.002, 14, dt);
       bodyRef.current.rotation.y = MathUtils.damp(bodyRef.current.rotation.y, move ? Math.sin(phase) * 0.12 * amp * 2 : 0, 10, dt);
     }
-    if (headRef.current) headRef.current.rotation.y = MathUtils.damp(headRef.current.rotation.y, move ? -Math.sin(phase) * 0.05 * amp * 2 : Math.sin(state.clock.elapsedTime * 0.5 + scale * 9) * 0.1, 6, dt);
+    if (headRef.current && lookRef) { headRef.current.rotation.y = MathUtils.damp(headRef.current.rotation.y, MathUtils.clamp(lookRef.current.yaw, -0.65, 0.65), 8, dt); headRef.current.rotation.x = MathUtils.damp(headRef.current.rotation.x, -lookRef.current.pitch * 0.38, 8, dt); }
+    else if (headRef.current) headRef.current.rotation.y = MathUtils.damp(headRef.current.rotation.y, move ? -Math.sin(phase) * 0.05 * amp * 2 : Math.sin(state.clock.elapsedTime * 0.5 + scale * 9) * 0.1, 6, dt);
   });
 
   const leg = (side: -1 | 1, hip: typeof hipL, knee: typeof kneeL) => <group ref={hip} position={[side * 0.092, 0.93, 0]}>
@@ -122,9 +128,10 @@ export function Person({ look, motion }: { look: PersonLook; motion?: MutableRef
       <mesh><sphereGeometry args={[0.043, 10, 8]} /><meshStandardMaterial color={longSleeve ? sleeveColor : skin} roughness={0.85} /></mesh>
       <mesh castShadow position-y={-0.13}><cylinderGeometry args={[0.043, 0.032, 0.26, 12]} /><meshStandardMaterial color={longSleeve ? sleeveColor : skin} roughness={longSleeve ? 0.88 : 0.72} /></mesh>
       <Hand side={side} color={handColor} near={near} />
-      {armed && side === 1 && <group position={[0, -0.34, 0.01]}>
+      {(armed || aim) && side === 1 && <group ref={pistol} position={[0, -0.34, 0.01]}>
         <mesh castShadow position={[0, -0.04, 0.012]}><boxGeometry args={[0.03, 0.17, 0.05]} /><meshStandardMaterial color="#17191a" metalness={0.6} roughness={0.4} /></mesh>
         <mesh castShadow position={[0, 0.02, 0.045]} rotation-x={0.2}><boxGeometry args={[0.028, 0.045, 0.05]} /><meshStandardMaterial color="#17191a" metalness={0.5} roughness={0.5} /></mesh>
+        {muzzleRef && <group ref={muzzleRef} visible={false} position={[0, -0.16, 0.012]}><pointLight color="#ffbf5e" intensity={3.2} distance={2.4} /><mesh><sphereGeometry args={[0.05, 8, 6]} /><meshBasicMaterial color="#fff0b0" /></mesh></group>}
       </group>}
     </group>
   </group>;

@@ -6,15 +6,13 @@ import { gameInput } from '../systems/gameInput';
 import { hitCombatTarget, hitNearestCombatTarget } from '../systems/combatTargets';
 import { playFootstep, playGunshot, playImpact } from '../systems/audio';
 import { useGameStore } from '../state';
-import { OptionalGlb } from './OptionalGlb';
-import { PoliceBody } from './PoliceBody';
+import { newMotion, Person } from './Person';
 
 export function Player() {
   const bodyRef = useRef<RapierRigidBody>(null);
   const modelRef = useRef<Group>(null);
-  const leftArm = useRef<Group>(null); const rightArm = useRef<Group>(null);
-  const leftLeg = useRef<Group>(null); const rightLeg = useRef<Group>(null);
-  const headRef = useRef<Group>(null);
+  const motion = useRef(newMotion()); const aimRef = useRef(false); const lookRef = useRef({ yaw: 0, pitch: 0 }); const meleeTimer = useRef(0);
+  const look = useGameStore((state) => state.profile.look);
   const firstPersonWeapon = useRef<Group>(null);
   const muzzleFlash = useRef<Group>(null);
   const firstPersonFlash = useRef<Group>(null);
@@ -73,29 +71,15 @@ export function Player() {
 
     const moving = strength > 0.05 && body.translation().y < 1.02;
     gait.current += dt * (gameInput.run ? 12 : 8.4) * strength;
-    const stride = moving ? Math.sin(gait.current) * (gameInput.run ? 0.72 : 0.48) * strength : 0;
-    const recover = (limb: typeof leftArm, amount: number) => { if (limb.current) limb.current.rotation.x = MathUtils.damp(limb.current.rotation.x, amount, 12, dt); };
-    recover(leftLeg, stride); recover(rightLeg, -stride);
-    recover(leftArm, gameInput.aim ? -1.1 : -stride * 0.72); recover(rightArm, gameInput.aim ? -1.1 : stride * 0.72);
+    motion.current.speed = moving ? (gameInput.run ? 1.8 : 1) * strength : 0; aimRef.current = gameInput.aim; meleeTimer.current = Math.max(0, meleeTimer.current - dt);
     if (modelRef.current && (strength > 0.03 || gameInput.aim)) {
       const heading = gameInput.aim ? yaw.current : Math.atan2(movement.current.x, movement.current.z);
       const deltaYaw = Math.atan2(Math.sin(heading - modelRef.current.rotation.y), Math.cos(heading - modelRef.current.rotation.y));
       modelRef.current.rotation.y += deltaYaw * (1 - Math.exp(-(gameInput.aim ? 12 : 7) * dt));
     }
-    if (modelRef.current) {
-      const model = modelRef.current; model.rotation.order = 'YXZ';
-      model.scale.y = MathUtils.damp(model.scale.y, isCrouched ? 0.76 : 1, 9, dt);
-      const bob = moving ? Math.abs(Math.sin(gait.current)) * (gameInput.run ? 0.07 : 0.035) : 0;
-      model.position.y = MathUtils.damp(model.position.y, bob, 14, dt);
-      const lean = moving && !gameInput.aim ? (gameInput.run ? 0.2 : 0.06) * strength : 0;
-      model.rotation.x = MathUtils.damp(model.rotation.x, lean, 8, dt);
-    }
+    if (modelRef.current) modelRef.current.scale.y = MathUtils.damp(modelRef.current.scale.y, isCrouched ? 0.78 : 1, 9, dt);
     if (firstPersonWeapon.current) { firstPersonWeapon.current.rotation.y = yaw.current; firstPersonWeapon.current.rotation.x = -pitch.current; }
-    if (headRef.current) {
-      const bodyYaw = modelRef.current?.rotation.y ?? yaw.current;
-      headRef.current.rotation.y = MathUtils.damp(headRef.current.rotation.y, MathUtils.clamp(yaw.current - bodyYaw, -0.65, 0.65), 8, dt);
-      headRef.current.rotation.x = MathUtils.damp(headRef.current.rotation.x, -pitch.current * 0.38, 8, dt);
-    }
+    lookRef.current.yaw = yaw.current - (modelRef.current?.rotation.y ?? yaw.current); lookRef.current.pitch = pitch.current;
     if (moving) {
       footstepClock.current += dt;
       if (footstepClock.current > (gameInput.run ? 0.34 : 0.49)) { playFootstep(gameInput.run); footstepClock.current = 0; }
@@ -103,7 +87,7 @@ export function Player() {
 
     const position = body.translation();
     const store = useGameStore.getState();
-    const positionIsInvalid = !Number.isFinite(position.x + position.y + position.z) || position.y < -2.5 || Math.abs(position.x) > 84 || Math.abs(position.z) > 84;
+    const positionIsInvalid = !Number.isFinite(position.x + position.y + position.z) || position.y < -2.5 || Math.abs(position.x) > 196 || Math.abs(position.z) > 84;
     if (positionIsInvalid) {
       const [safeX, safeZ] = lastSafePosition.current;
       body.setTranslation({ x: safeX, y: 0.92, z: safeZ }, true);
@@ -180,11 +164,11 @@ export function Player() {
         impactFlash.current.position.set(surfaceHit.point.x - bodyPosition.x, surfaceHit.point.y - bodyPosition.y, surfaceHit.point.z - bodyPosition.z);
         impactFlash.current.visible = true; impactTimer.current = 0.075; playImpact();
       } else if (hitTarget) playImpact();
-      playGunshot(); fireCooldown.current = 0.22; muzzleTimer.current = 0.055; recoil.current = -0.04;
+      playGunshot(); store.markShot(); fireCooldown.current = 0.22; muzzleTimer.current = 0.055; recoil.current = -0.04;
     }
-    if (gameInput.meleePressed && fireCooldown.current === 0 && store.missionPhase === 'shootout') {
-      if (hitNearestCombatTarget(new Vector3(position.x, position.y + 0.9, position.z), 2.2)) playImpact();
-      fireCooldown.current = 0.45;
+    if (gameInput.meleePressed && fireCooldown.current === 0) {
+      if (hitNearestCombatTarget(new Vector3(position.x, position.y + 0.9, position.z), 2.4)) playImpact();
+      fireCooldown.current = 0.45; meleeTimer.current = 0.3;
     }
     if (gameInput.vehiclePressed) {
       const vehiclePosition = store.vehiclePosition;
@@ -194,7 +178,7 @@ export function Player() {
 
   return <RigidBody ref={bodyRef} colliders={false} mass={1} enabledRotations={[false, false, false]} position={[0, 0.92, -8]} linearDamping={0}>
     <CapsuleCollider args={[0.55, 0.34]} friction={0.1} />
-    <group ref={modelRef}><OptionalGlb url="/models/player.glb" scale={1} fallback={<PoliceBody leftArm={leftArm} rightArm={rightArm} leftLeg={leftLeg} rightLeg={rightLeg} headRef={headRef} muzzleFlash={muzzleFlash} />} /></group>
+    <group ref={modelRef}><group position-y={-0.89}><Person look={look} motion={motion} aim={aimRef} muzzleRef={muzzleFlash} lookRef={lookRef} punch={meleeTimer} /></group></group>
     <group ref={firstPersonWeapon} visible={false} position={[0, 0.45, 0]}>
       <mesh castShadow position={[0.36, 0.08, 0.35]}><boxGeometry args={[0.1, 0.1, 0.38]} /><meshStandardMaterial color="#171b1c" metalness={0.55} roughness={0.45} /></mesh>
       <mesh castShadow position={[0.36, -0.08, 0.19]} rotation-x={-0.2}><boxGeometry args={[0.1, 0.2, 0.12]} /><meshStandardMaterial color="#171b1c" roughness={0.8} /></mesh>
